@@ -2,6 +2,12 @@
 
 Web app to track dog sitting business income and expenses, synced to a Google Sheet.
 
+## Production URL
+https://shuvajyotibardhan-crco.github.io/dog-sitting-finance/
+
+## GitHub Repo
+https://github.com/shuvajyotibardhan-crco/dog-sitting-finance
+
 ## Tech Stack
 - Vanilla HTML/CSS/JavaScript — no build step, no framework
 - Google Identity Services (GIS) — OAuth 2.0 (free)
