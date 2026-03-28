@@ -12,6 +12,10 @@ const App = (() => {
   const EF = { from: '', to: '', store: '', remarks: '', sort: 'desc' };
   const IF = { from: '', to: '', dog:   '', source: '', type: '', sort: 'desc' };
 
+  // Selection state (persists across re-renders)
+  const expSelected = new Set();
+  const incSelected = new Set();
+
   // ── Bootstrap ───────────────────────────────────────────────
   function init() {
     checkConfig();
@@ -20,6 +24,7 @@ const App = (() => {
     setupTabs();
     setupFilters();
     setupModal();
+    setupSelection();
     render();
   }
 
@@ -169,6 +174,93 @@ const App = (() => {
   }
 
   function resetFilters() { resetExpenseFilters(); resetIncomeFilters(); }
+
+  // ── Selection & Re-sync ───────────────────────────────────────
+  function setupSelection() {
+    // Expense checkboxes (event delegation on tbody)
+    document.getElementById('expense-body').addEventListener('change', e => {
+      if (!e.target.matches('.row-check')) return;
+      const id = e.target.dataset.id;
+      e.target.checked ? expSelected.add(id) : expSelected.delete(id);
+      updateResyncBtn('exp', expSelected);
+      updateSelectAllBox('exp-check-all', expSelected, 'expense-body');
+    });
+
+    // Income checkboxes
+    document.getElementById('income-body').addEventListener('change', e => {
+      if (!e.target.matches('.row-check')) return;
+      const id = e.target.dataset.id;
+      e.target.checked ? incSelected.add(id) : incSelected.delete(id);
+      updateResyncBtn('inc', incSelected);
+      updateSelectAllBox('inc-check-all', incSelected, 'income-body');
+    });
+
+    // Select-all checkboxes
+    document.getElementById('exp-check-all').addEventListener('change', e => {
+      document.querySelectorAll('#expense-body .row-check').forEach(cb => {
+        cb.checked = e.target.checked;
+        e.target.checked ? expSelected.add(cb.dataset.id) : expSelected.delete(cb.dataset.id);
+      });
+      updateResyncBtn('exp', expSelected);
+    });
+    document.getElementById('inc-check-all').addEventListener('change', e => {
+      document.querySelectorAll('#income-body .row-check').forEach(cb => {
+        cb.checked = e.target.checked;
+        e.target.checked ? incSelected.add(cb.dataset.id) : incSelected.delete(cb.dataset.id);
+      });
+      updateResyncBtn('inc', incSelected);
+    });
+
+    // Re-sync buttons
+    document.getElementById('exp-resync').addEventListener('click', () => resyncSelected('expenses'));
+    document.getElementById('inc-resync').addEventListener('click', () => resyncSelected('income'));
+  }
+
+  function updateResyncBtn(prefix, selected) {
+    const btn = document.getElementById(`${prefix}-resync`);
+    if (selected.size > 0) {
+      btn.classList.remove('hidden');
+      btn.textContent = `↻ Re-sync selected (${selected.size})`;
+    } else {
+      btn.classList.add('hidden');
+    }
+  }
+
+  function updateSelectAllBox(checkAllId, selected, tbodyId) {
+    const allBoxes = document.querySelectorAll(`#${tbodyId} .row-check`);
+    const allChecked = allBoxes.length > 0 && [...allBoxes].every(cb => selected.has(cb.dataset.id));
+    document.getElementById(checkAllId).checked = allChecked;
+  }
+
+  async function resyncSelected(tab) {
+    if (!Auth.isConnected()) { toast('Connect Google Sheets first', 'error'); return; }
+    const selected = tab === 'expenses' ? expSelected : incSelected;
+    const prefix   = tab === 'expenses' ? 'exp' : 'inc';
+    const btn      = document.getElementById(`${prefix}-resync`);
+
+    btn.disabled = true;
+    btn.textContent = 'Re-syncing…';
+
+    // Remove selected records from local storage
+    selected.forEach(id => {
+      tab === 'expenses' ? Storage.removeExpense(id) : Storage.removeIncome(id);
+    });
+    const count = selected.size;
+    selected.clear();
+
+    // Pull fresh data from sheet — re-imports the deleted rows with updated values
+    try {
+      await Sheets.pullYear(selectedYear);
+      render();
+      toast(`Re-synced ${count} row${count !== 1 ? 's' : ''} from sheet`, 'success');
+    } catch (err) {
+      render();
+      toast('Re-sync failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      updateResyncBtn(prefix, selected);
+    }
+  }
 
   // ── Modal ─────────────────────────────────────────────────────
   function setupModal() {
@@ -364,8 +456,16 @@ const App = (() => {
       return;
     }
 
+    // Remove stale selections (rows no longer visible)
+    const visibleExpIds = new Set(rows.map(e => e.id));
+    [...expSelected].forEach(id => { if (!visibleExpIds.has(id)) expSelected.delete(id); });
+    updateResyncBtn('exp', expSelected);
+
     tbody.innerHTML = rows.map(e => `
-      <tr>
+      <tr class="${expSelected.has(e.id) ? 'selected-row' : ''}">
+        <td class="col-check">
+          <input type="checkbox" class="row-check" data-id="${e.id}" ${expSelected.has(e.id) ? 'checked' : ''}>
+        </td>
         <td class="col-date">${fmtDate(e.date)}</td>
         <td>${esc(e.expense)}</td>
         <td class="col-num amt-expense">−${fmt(e.amount)}</td>
@@ -380,6 +480,7 @@ const App = (() => {
         </td>
       </tr>
     `).join('');
+    updateSelectAllBox('exp-check-all', expSelected, 'expense-body');
   }
 
   // ── Render income ─────────────────────────────────────────────
@@ -415,8 +516,16 @@ const App = (() => {
       return;
     }
 
+    // Remove stale selections
+    const visibleIncIds = new Set(rows.map(i => i.id));
+    [...incSelected].forEach(id => { if (!visibleIncIds.has(id)) incSelected.delete(id); });
+    updateResyncBtn('inc', incSelected);
+
     tbody.innerHTML = rows.map(i => `
-      <tr>
+      <tr class="${incSelected.has(i.id) ? 'selected-row' : ''}">
+        <td class="col-check">
+          <input type="checkbox" class="row-check" data-id="${i.id}" ${incSelected.has(i.id) ? 'checked' : ''}>
+        </td>
         <td class="col-date">${fmtDate(i.date)}</td>
         <td>${esc(i.dogName)}</td>
         <td class="col-num amt-income">+${fmt(i.income)}</td>
@@ -435,6 +544,7 @@ const App = (() => {
         </td>
       </tr>
     `).join('');
+    updateSelectAllBox('inc-check-all', incSelected, 'income-body');
   }
 
   function populateStoreFilter(yearRows) {

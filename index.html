@@ -82,6 +82,7 @@
         </select>
       </div>
       <button class="btn btn-clear" id="exp-clear">Clear</button>
+      <button class="btn btn-resync hidden" id="exp-resync">↻ Re-sync selected (0)</button>
       <div class="filter-total">
         <div class="ft-label"><span id="exp-count">0</span> rows</div>
         <div class="ft-value" id="exp-total">$0.00</div>
@@ -92,6 +93,7 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th class="col-check"><input type="checkbox" id="exp-check-all" title="Select all"></th>
             <th class="col-date">Date</th>
             <th>Expense</th>
             <th class="col-num">Amount</th>
@@ -142,6 +144,7 @@
         </select>
       </div>
       <button class="btn btn-clear" id="inc-clear">Clear</button>
+      <button class="btn btn-resync hidden" id="inc-resync">↻ Re-sync selected (0)</button>
       <div class="filter-total">
         <div class="ft-label"><span id="inc-count">0</span> rows</div>
         <div class="ft-value" id="inc-total">$0.00</div>
@@ -152,6 +155,7 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th class="col-check"><input type="checkbox" id="inc-check-all" title="Select all"></th>
             <th class="col-date">Date</th>
             <th>Dog Name</th>
             <th class="col-num">Income</th>
