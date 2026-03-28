@@ -3,171 +3,252 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finance Tracker</title>
+  <title>Dog Sitting Finance</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://accounts.google.com/gsi/client"></script>
 </head>
 <body>
 
-  <!-- Header -->
-  <header class="header">
-    <div class="header-left">
-      <h1>Finance Tracker</h1>
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<header class="header">
+  <div class="header-left">
+    <h1>Dog Sitting Finance</h1>
+    <div class="year-wrap">
+      <select id="year-select" class="year-select"></select>
+      <span id="year-badge" class="year-badge hidden">View only</span>
     </div>
-    <div class="header-right">
-      <button id="sync-btn" class="btn btn-secondary" disabled>
-        <span class="sync-icon">↻</span> Sync from Sheet
-      </button>
-      <button id="add-btn" class="btn btn-primary">+ Add Transaction</button>
-      <div id="auth-section">
-        <button id="connect-btn" class="btn btn-google">Connect Google Sheets</button>
-        <div id="auth-status" class="auth-status hidden">
-          <span class="auth-dot connected"></span>
-          <span id="auth-label">Connected</span>
-          <button id="disconnect-btn" class="btn-link">Disconnect</button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Setup Banner (shown if config not filled in) -->
-  <div id="setup-banner" class="setup-banner hidden">
-    <strong>Setup required:</strong> Open <code>js/config.js</code> and fill in your Google Client ID and Sheet ID.
-    <a href="#" id="setup-dismiss">Dismiss</a>
   </div>
-
-  <!-- Tabs -->
-  <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="transactions">Transactions</button>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="main">
-
-    <!-- Dashboard Tab -->
-    <section id="tab-dashboard" class="tab-content active">
-      <div class="cards-grid">
-        <div class="card income-card">
-          <div class="card-label">Total Income</div>
-          <div class="card-value" id="total-income">£0.00</div>
-        </div>
-        <div class="card expense-card">
-          <div class="card-label">Total Expenses</div>
-          <div class="card-value" id="total-expenses">£0.00</div>
-        </div>
-        <div class="card balance-card">
-          <div class="card-label">Net Balance</div>
-          <div class="card-value" id="net-balance">£0.00</div>
-        </div>
-        <div class="card month-card">
-          <div class="card-label">This Month (Net)</div>
-          <div class="card-value" id="this-month">£0.00</div>
-        </div>
+  <div class="header-right">
+    <button id="sync-btn" class="btn btn-secondary" disabled title="Pull data from Google Sheets">
+      <span class="sync-icon">↻</span> Sync
+    </button>
+    <button id="add-btn" class="btn btn-primary">+ Add</button>
+    <div id="auth-section">
+      <button id="connect-btn" class="btn btn-google">Connect Sheets</button>
+      <div id="auth-status" class="auth-status hidden">
+        <span class="auth-dot connected"></span>
+        <span>Connected</span>
+        <button id="disconnect-btn" class="btn-link">Disconnect</button>
       </div>
+    </div>
+  </div>
+</header>
 
-      <div class="charts-grid">
-        <div class="chart-card">
-          <h3>Income vs Expenses by Month</h3>
-          <canvas id="monthly-chart"></canvas>
-        </div>
-        <div class="chart-card">
-          <h3>Expense Breakdown</h3>
-          <div id="expense-chart-wrapper">
-            <canvas id="expense-chart"></canvas>
-          </div>
-          <div id="expense-empty" class="chart-empty hidden">No expense data yet</div>
-        </div>
+<!-- Setup notice -->
+<div id="setup-banner" class="setup-banner hidden">
+  <strong>Setup needed:</strong> Fill in your Google Client ID in <code>js/config.js</code>.
+  See <code>CLAUDE.md</code> for step-by-step instructions.
+  <a href="#" id="setup-dismiss">×</a>
+</div>
+
+<!-- ══ TABS ════════════════════════════════════════════════════ -->
+<nav class="tabs">
+  <button class="tab active" data-tab="expenses">Expenses</button>
+  <button class="tab" data-tab="income">Income</button>
+</nav>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── EXPENSES tab ──────────────────────────────────────── -->
+  <section id="tab-expenses" class="tab-content active">
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>From</label>
+        <input type="date" id="exp-from">
       </div>
-    </section>
+      <div class="filter-group">
+        <label>To</label>
+        <input type="date" id="exp-to">
+      </div>
+      <div class="filter-group fg-grow">
+        <label>Store</label>
+        <input type="text" id="exp-store" placeholder="Filter by store…">
+      </div>
+      <div class="filter-group">
+        <label>Remarks</label>
+        <select id="exp-remarks">
+          <option value="">All</option>
+          <option value="yes">Has remarks</option>
+          <option value="no">No remarks</option>
+        </select>
+      </div>
+      <button class="btn btn-clear" id="exp-clear">Clear</button>
+    </div>
 
-    <!-- Transactions Tab -->
-    <section id="tab-transactions" class="tab-content">
-      <div class="transactions-toolbar">
-        <input type="text" id="search" placeholder="Search description or category..." class="search-input">
-        <select id="filter-type" class="filter-select">
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-date">Date</th>
+            <th>Expense</th>
+            <th class="col-num">Amount</th>
+            <th>Store</th>
+            <th>Remarks</th>
+            <th class="col-sync" title="Synced to sheet">●</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody id="expense-body"></tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="2" class="total-label">
+              Total — <span id="exp-count">0</span> rows
+            </td>
+            <td class="total-amount col-num" id="exp-total">£0.00</td>
+            <td colspan="4"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── INCOME tab ─────────────────────────────────────────── -->
+  <section id="tab-income" class="tab-content">
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>From</label>
+        <input type="date" id="inc-from">
+      </div>
+      <div class="filter-group">
+        <label>To</label>
+        <input type="date" id="inc-to">
+      </div>
+      <div class="filter-group">
+        <label>Dog</label>
+        <select id="inc-dog"><option value="">All Dogs</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Source</label>
+        <select id="inc-source"><option value="">All Sources</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Type</label>
+        <select id="inc-type">
           <option value="">All Types</option>
-          <option value="income">Income</option>
-          <option value="expense">Expense</option>
-        </select>
-        <select id="filter-month" class="filter-select">
-          <option value="">All Time</option>
+          <option value="Regular">Regular</option>
+          <option value="Tips">Tips</option>
         </select>
       </div>
-      <div class="table-wrapper">
-        <table class="transactions-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Description</th>
-              <th title="Google Sheets sync status">Synced</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="transactions-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Add Transaction Modal -->
-  <div id="modal-overlay" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Add Transaction</h2>
-        <button id="modal-close" class="modal-close" aria-label="Close">×</button>
-      </div>
-      <form id="transaction-form">
-        <div class="form-group">
-          <label>Type</label>
-          <div class="type-toggle">
-            <button type="button" class="type-btn active" data-type="expense">Expense</button>
-            <button type="button" class="type-btn" data-type="income">Income</button>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="f-amount">Amount</label>
-            <div class="amount-input-wrap">
-              <span class="currency-symbol" id="currency-symbol">£</span>
-              <input type="number" id="f-amount" step="0.01" min="0.01" required placeholder="0.00">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="f-date">Date</label>
-            <input type="date" id="f-date" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="f-category">Category</label>
-          <select id="f-category" required></select>
-        </div>
-        <div class="form-group">
-          <label for="f-description">Description <span class="optional">(optional)</span></label>
-          <input type="text" id="f-description" placeholder="Add a note...">
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="submit-btn">Add Transaction</button>
-        </div>
-      </form>
+      <button class="btn btn-clear" id="inc-clear">Clear</button>
     </div>
+
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-date">Date</th>
+            <th>Dog Name</th>
+            <th class="col-num">Income</th>
+            <th>Source</th>
+            <th>Income Type</th>
+            <th class="col-sync" title="Synced to sheet">●</th>
+            <th class="col-action"></th>
+          </tr>
+        </thead>
+        <tbody id="income-body"></tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="2" class="total-label">
+              Total — <span id="inc-count">0</span> rows
+            </td>
+            <td class="total-amount col-num" id="inc-total">£0.00</td>
+            <td colspan="4"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══ MODAL ═══════════════════════════════════════════════════ -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Expense</h2>
+      <button id="modal-close" class="modal-close" aria-label="Close">×</button>
+    </div>
+
+    <!-- Expense form -->
+    <form id="expense-form">
+      <div class="form-group">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date" required>
+      </div>
+      <div class="form-group">
+        <label for="f-expense">Expense</label>
+        <input type="text" id="f-expense" required placeholder="e.g. Dog food, Vet visit">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="f-amount">Amount (£)</label>
+          <input type="number" id="f-amount" step="0.01" min="0.01" required placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label for="f-store">Store</label>
+          <input type="text" id="f-store" placeholder="Store name" list="store-datalist">
+          <datalist id="store-datalist"></datalist>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="f-remarks">Remarks <span class="optional">(optional)</span></label>
+        <input type="text" id="f-remarks" placeholder="Any notes…">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="exp-submit">Add Expense</button>
+      </div>
+    </form>
+
+    <!-- Income form -->
+    <form id="income-form" class="hidden">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="i-date">Date</label>
+          <input type="date" id="i-date" required>
+        </div>
+        <div class="form-group">
+          <label for="i-itype">Income Type</label>
+          <select id="i-itype">
+            <option value="Regular">Regular</option>
+            <option value="Tips">Tips</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="i-dog">Dog Name</label>
+          <input type="text" id="i-dog" required placeholder="Dog's name" list="dog-datalist">
+          <datalist id="dog-datalist"></datalist>
+        </div>
+        <div class="form-group">
+          <label for="i-amount">Amount (£)</label>
+          <input type="number" id="i-amount" step="0.01" min="0.01" required placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="i-source">Source</label>
+        <input type="text" id="i-source" required placeholder="e.g. Cash, Bank Transfer" list="source-datalist">
+        <datalist id="source-datalist"></datalist>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="inc-submit">Add Income</button>
+      </div>
+    </form>
+
   </div>
+</div>
 
-  <!-- Toast notifications -->
-  <div id="toast-container" class="toast-container"></div>
+<div id="toast-container" class="toast-container"></div>
 
-  <!-- Scripts -->
-  <script src="js/config.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/sheets.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/app.js"></script>
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sheets.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

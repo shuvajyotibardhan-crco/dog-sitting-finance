@@ -1,109 +1,128 @@
-# Finance Tracker — Dog Sitting Business
+# Dog Sitting Finance Tracker
 
-A client-side web app for tracking income and expenses, with two-way sync to Google Sheets.
+Web app to track dog sitting business income and expenses, synced to a Google Sheet.
 
 ## Tech Stack
-- Vanilla HTML/CSS/JavaScript (no build step, no framework)
-- Chart.js (CDN) — dashboard charts
-- Google Identity Services (GIS) — OAuth 2.0
-- Google Sheets API v4 — data sync
+- Vanilla HTML/CSS/JavaScript — no build step, no framework
+- Google Identity Services (GIS) — OAuth 2.0 (free)
+- Google Sheets API v4 — read/write sync
 - LocalStorage — offline persistence
+
+## Your Google Sheet
+**ID:** `1368w-lEeEpDkNK3PxguJjFPmLNAf6n3ITyHeP8pYF34`
+**URL:** https://docs.google.com/spreadsheets/d/1368w-lEeEpDkNK3PxguJjFPmLNAf6n3ITyHeP8pYF34/edit
+
+## Sheet Structure (year-based tabs)
+Each year has two tabs. Tab naming set in `js/config.js` via `TAB_EXPENSE` / `TAB_INCOME`.
+
+**Expense tab** — 5 columns, row 1 = header:
+| A: Date | B: Expense | C: Amount | D: Store | E: Remarks |
+
+**Income tab** — 4 columns, row 1 = header:
+| A: Date | B: Dog Name | C: Income | D: Source |
+> Tips are stored as `DogName-tips` in column B. The app parses and displays these with Income Type = Tips.
 
 ## File Structure
 ```
-index.html          — single-page app shell
-css/style.css       — all styles
-js/config.js        — ★ FILL THIS IN (Client ID, Sheet ID, currency)
-js/auth.js          — Google OAuth token management
-js/storage.js       — LocalStorage CRUD
-js/sheets.js        — Sheets API (push/pull)
-js/dashboard.js     — Chart.js charts + summary cards
-js/app.js           — Main controller (tabs, modal, filters, render)
+index.html      — single-page app
+css/style.css   — all styles
+js/config.js    — ★ FILL IN: CLIENT_ID, tab name patterns, currency
+js/auth.js      — Google OAuth token management
+js/storage.js   — LocalStorage CRUD + dedup logic
+js/sheets.js    — Sheets API push/pull (year-aware)
+js/app.js       — Main controller: tabs, filters, modal, render
 ```
 
-## Expected Google Sheet Structure
-Row 1 must be a header row. Columns:
-| A: ID | B: Date | C: Type | D: Category | E: Amount | F: Description | G: Created At |
-
-The app creates this header automatically on first push if the sheet is empty.
-If you have an existing sheet with different columns, either restructure it to match,
-or only use the app→sheet push (not the pull sync).
+## App Features
+- **Year selector** — view any year; add only allowed for current + next year
+- **Expenses tab** — filter by date range, store, has/no remarks; total at bottom
+- **Income tab** — filter by date range, dog name, source, income type (Regular/Tips); total at bottom
+- **Push on entry** — every new row is immediately pushed to the sheet if connected
+- **Sync button** — pulls from sheet; adds any rows not already in the app
+- **Pending indicator** — amber dot = not yet synced; green dot = synced
 
 ---
 
-## ★ One-time Google Cloud Setup
+## ★ One-Time Google Cloud Setup
 
-### 1. Create a Google Cloud project
+### Step 1 — Create a Google Cloud project
 1. Go to https://console.cloud.google.com/
-2. Click "New Project" → name it (e.g. "Finance Tracker") → Create
+2. Click the project dropdown (top left) → **New Project**
+3. Name it (e.g. "Dog Sitting Finance") → **Create**
+4. Make sure the new project is selected
 
-### 2. Enable the Google Sheets API
-1. In your project, go to **APIs & Services → Library**
-2. Search "Google Sheets API" → Enable
+### Step 2 — Enable the Google Sheets API
+1. In the left sidebar: **APIs & Services → Library**
+2. Search for **"Google Sheets API"**
+3. Click it → **Enable**
 
-### 3. Create OAuth 2.0 credentials
+### Step 3 — Configure the OAuth consent screen
+1. Go to **APIs & Services → OAuth consent screen**
+2. User type: **External** → **Create**
+3. Fill in:
+   - App name: `Dog Sitting Finance`
+   - User support email: your email
+   - Developer contact: your email
+4. Click **Save and Continue**
+5. On Scopes page: click **Add or Remove Scopes**
+   - Search for `spreadsheets` → tick `https://www.googleapis.com/auth/spreadsheets`
+   - Click **Update** → **Save and Continue**
+6. On Test Users page: click **Add Users** → add your Gmail → **Save and Continue**
+7. Click **Back to Dashboard**
+
+### Step 4 — Create OAuth 2.0 credentials
 1. Go to **APIs & Services → Credentials**
-2. Click **Create Credentials → OAuth client ID**
-3. If prompted, configure the OAuth consent screen first:
-   - User type: **External** (or Internal if you have Google Workspace)
-   - App name: Finance Tracker
-   - Add your email as a test user
-   - Scopes: add `https://www.googleapis.com/auth/spreadsheets`
-4. Back in Create Credentials → OAuth client ID:
-   - Application type: **Web application**
-   - Authorized JavaScript origins:
-     - `http://localhost:3000`  (for local development)
-     - `http://localhost:8080`  (alternative port)
-     - Add your deployed URL if you host it online
-5. Click Create → copy the **Client ID**
+2. Click **+ Create Credentials → OAuth client ID**
+3. Application type: **Web application**
+4. Name: `Dog Sitting Finance`
+5. Under **Authorized JavaScript origins**, add:
+   - `http://localhost:3000`
+   - `http://localhost:8080`
+   - (add your hosted URL here if you deploy online)
+6. Click **Create**
+7. Copy the **Client ID** shown (looks like `123456789-abc.apps.googleusercontent.com`)
 
-### 4. Fill in config.js
+### Step 5 — Fill in config.js
 Open `js/config.js` and set:
-- `CLIENT_ID` — the Client ID you just copied
-- `SHEET_ID` — from your Google Sheet URL:
-  `https://docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit`
-- `SHEET_TAB` — the tab name (default: "Transactions")
-- `CURRENCY` — e.g. `'£'` or `'$'`
+```js
+CLIENT_ID: 'paste-your-client-id-here',
+TAB_EXPENSE: '{year} Expense',   // ← change to match your actual tab names
+TAB_INCOME:  '{year} Income',    // ← change to match your actual tab names
+```
+
+> **Tab naming:** Look at your Google Sheet tabs. If 2025's expense tab is called `"2025 Expenses"`, set `TAB_EXPENSE: '{year} Expenses'`. The `{year}` part is replaced automatically.
 
 ---
 
 ## Running the App
 
-The app must be served over HTTP (not opened as a file://), because Google OAuth
-requires a registered origin. Easiest options:
+The app **must be served over HTTP** — Google OAuth blocks `file://` origins.
 
-**Option A — VS Code Live Server**
-- Install the "Live Server" extension → right-click `index.html` → Open with Live Server
+**Option A — VS Code Live Server** (easiest)
+- Install "Live Server" extension → right-click `index.html` → Open with Live Server
 
 **Option B — Python**
 ```bash
-cd "Dog Sitting"
+cd "/Users/shuvajyotibardhan/Projects/Dog Sitting"
 python3 -m http.server 3000
-# Open http://localhost:3000
+# Open: http://localhost:3000
 ```
 
 **Option C — Node**
 ```bash
 npx serve . -p 3000
-# Open http://localhost:3000
+# Open: http://localhost:3000
 ```
 
 ---
 
-## How Sync Works
+## Sync Behaviour
 
-| Action | Behaviour |
-|--------|-----------|
-| Add transaction in app (connected) | Saved to localStorage + immediately pushed to sheet |
-| Add transaction in app (not connected) | Saved to localStorage, marked pending (yellow dot) |
-| Click "Connect Google Sheets" (with pending) | All pending transactions pushed automatically |
-| Click "Sync from Sheet" button | Pulls rows from sheet; adds any IDs not in localStorage |
-| Delete transaction in app | Removed from localStorage only — sheet is NOT modified |
-
----
-
-## Architecture Notes
-- No backend — entirely client-side
-- OAuth token stored in localStorage (with expiry check); auto-restored on page load
-- Transactions deduped by UUID (`crypto.randomUUID()`)
-- Green dot = synced to sheet; amber dot = pending sync
+| Action | Result |
+|--------|--------|
+| Add expense/income (connected) | LocalStorage + pushed to sheet immediately |
+| Add expense/income (disconnected) | LocalStorage only; amber dot shown |
+| Reconnect Google | All pending rows auto-pushed |
+| Click Sync | Pulls sheet for selected year; adds missing rows |
+| Delete in app | Local only — sheet is NOT modified |
+| Past-year rows in sheet | Synced and displayed; cannot be added manually from app |

@@ -1,49 +1,71 @@
-// LocalStorage persistence layer
+// LocalStorage layer — separate stores for expenses and income
 const Storage = (() => {
-  const KEY = 'finance_tracker_v1';
+  const EXP_KEY = 'dogsit_expenses';
+  const INC_KEY = 'dogsit_income';
 
-  function getAll() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY)) || [];
-    } catch {
-      return [];
-    }
+  // ── Raw get / set ───────────────────────────────────────────
+  function getExpenses() {
+    try { return JSON.parse(localStorage.getItem(EXP_KEY)) || []; } catch { return []; }
+  }
+  function getIncome() {
+    try { return JSON.parse(localStorage.getItem(INC_KEY)) || []; } catch { return []; }
+  }
+  function _saveExp(arr) { localStorage.setItem(EXP_KEY, JSON.stringify(arr)); }
+  function _saveInc(arr) { localStorage.setItem(INC_KEY, JSON.stringify(arr)); }
+
+  // ── Add ─────────────────────────────────────────────────────
+  function addExpense(e)  { const a = getExpenses(); a.push(e); _saveExp(a); return e; }
+  function addIncome(i)   { const a = getIncome();   a.push(i); _saveInc(i); return i; }
+
+  // ── Remove ──────────────────────────────────────────────────
+  function removeExpense(id) { _saveExp(getExpenses().filter(e => e.id !== id)); }
+  function removeIncome(id)  { _saveInc(getIncome().filter(i => i.id !== id)); }
+
+  // ── Mark synced ─────────────────────────────────────────────
+  function markExpenseSynced(id) {
+    const a = getExpenses(); const x = a.find(e => e.id === id);
+    if (x) { x.synced = true; _saveExp(a); }
+  }
+  function markIncomeSynced(id) {
+    const a = getIncome(); const x = a.find(i => i.id === id);
+    if (x) { x.synced = true; _saveInc(a); }
   }
 
-  function saveAll(transactions) {
-    localStorage.setItem(KEY, JSON.stringify(transactions));
+  // ── Dedup keys ─────────────────────────────────────────────
+  // Used to avoid importing the same row twice when pulling from sheet.
+  function expKey(e) {
+    return `${e.date}|${(e.expense||'').toLowerCase()}|${e.amount}|${(e.store||'').toLowerCase()}`;
+  }
+  function incKey(i) {
+    // Use raw dogName (before tips parsing) for the key
+    const raw = i.incomeType === 'Tips' ? `${i.dogName}-tips` : i.dogName;
+    return `${i.date}|${raw.toLowerCase()}|${i.income}|${(i.source||'').toLowerCase()}`;
   }
 
-  function add(transaction) {
-    const all = getAll();
-    all.push(transaction);
-    saveAll(all);
-    return transaction;
+  // ── Upsert (used by pull sync) ──────────────────────────────
+  function upsertExpense(e) {
+    const a = getExpenses();
+    const keys = new Set(a.map(expKey));
+    if (!keys.has(expKey(e))) { a.push(e); _saveExp(a); return true; }
+    return false;
+  }
+  function upsertIncome(i) {
+    const a = getIncome();
+    const keys = new Set(a.map(incKey));
+    if (!keys.has(incKey(i))) { a.push(i); _saveInc(a); return true; }
+    return false;
   }
 
-  function remove(id) {
-    saveAll(getAll().filter(t => t.id !== id));
-  }
+  // ── Pending (not yet synced) ────────────────────────────────
+  function getPendingExpenses() { return getExpenses().filter(e => !e.synced); }
+  function getPendingIncome()   { return getIncome().filter(i => !i.synced); }
 
-  // Mark a transaction as synced to Google Sheets
-  function markSynced(id) {
-    const all = getAll();
-    const t = all.find(t => t.id === id);
-    if (t) { t.synced = true; saveAll(all); }
-  }
-
-  // Add a transaction only if its ID isn't already stored (used for pull sync)
-  function upsert(transaction) {
-    const all = getAll();
-    if (!all.find(t => t.id === transaction.id)) {
-      all.push(transaction);
-      saveAll(all);
-    }
-  }
-
-  function getPending() {
-    return getAll().filter(t => !t.synced);
-  }
-
-  return { getAll, add, remove, markSynced, upsert, getPending };
+  return {
+    getExpenses, getIncome,
+    addExpense, addIncome,
+    removeExpense, removeIncome,
+    markExpenseSynced, markIncomeSynced,
+    upsertExpense, upsertIncome,
+    getPendingExpenses, getPendingIncome,
+  };
 })();

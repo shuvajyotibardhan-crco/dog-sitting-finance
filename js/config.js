@@ -1,23 +1,30 @@
 // ================================================================
-// CONFIGURATION — fill these in before using the app
-// See CLAUDE.md for step-by-step setup instructions
+// CONFIGURATION
+// Fill in CLIENT_ID before using the app.
+// See CLAUDE.md for step-by-step Google Cloud setup.
 // ================================================================
 const CONFIG = {
-  // Your Google OAuth 2.0 Client ID (from Google Cloud Console)
-  // e.g. "123456789-abc.apps.googleusercontent.com"
+
+  // ① Your Google OAuth 2.0 Client ID (from Google Cloud Console)
   CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID_HERE',
 
-  // Your Google Sheet ID — found in the sheet URL:
-  // https://docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit
-  SHEET_ID: 'YOUR_SHEET_ID_HERE',
+  // ② Your Google Sheet ID — already filled in from your sheet URL
+  SHEET_ID: '1368w-lEeEpDkNK3PxguJjFPmLNAf6n3ITyHeP8pYF34',
 
-  // The tab name inside your spreadsheet (default: "Transactions")
-  // The app will use this tab and expects the first row to be headers.
-  SHEET_TAB: 'Transactions',
+  // ③ Tab name patterns — use {year} as a placeholder.
+  //    Must exactly match the tab names in your Google Sheet.
+  //    e.g. if your tabs are "2025 Expense" and "2025 Income":
+  TAB_EXPENSE: '{year} Expense',
+  TAB_INCOME:  '{year} Income',
 
-  // Currency symbol shown in the UI
+  // ④ Currency symbol shown in the UI
   CURRENCY: '£',
+
+  // ⑤ Earliest year to show in the year selector
+  START_YEAR: 2023,
 };
 
-// Expected sheet columns (do not change order if using an existing sheet):
-// A: ID | B: Date | C: Type | D: Category | E: Amount | F: Description | G: Created At
+// ── Sheet column order (do not change unless your sheet differs) ──
+// Expense: A=Date  B=Expense  C=Amount  D=Store     E=Remarks
+// Income:  A=Date  B=DogName  C=Income  D=Source
+//   Tips are encoded as "DogName-tips" in column B
