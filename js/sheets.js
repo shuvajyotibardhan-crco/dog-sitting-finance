@@ -30,7 +30,10 @@ const Sheets = (() => {
   // ── Range helpers ───────────────────────────────────────────
   function readUrl(tabName) {
     const r = encodeURIComponent(`'${tabName}'!A:F`);
-    return `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${r}`;
+    // dateTimeRenderOption=FORMATTED_STRING: date cells come back as visible text
+    // (without this, Google Sheets returns date cells as integer serial numbers)
+    return `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values/${r}`
+         + `?dateTimeRenderOption=FORMATTED_STRING&valueRenderOption=FORMATTED_VALUE`;
   }
 
   function appendUrl(tabName) {

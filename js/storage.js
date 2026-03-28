@@ -60,6 +60,10 @@ const Storage = (() => {
   function getPendingExpenses() { return getExpenses().filter(e => !e.synced); }
   function getPendingIncome()   { return getIncome().filter(i => !i.synced); }
 
+  // Call from browser console to wipe and re-sync: Storage.clearIncome()
+  function clearIncome()   { localStorage.removeItem(INC_KEY); }
+  function clearExpenses() { localStorage.removeItem(EXP_KEY); }
+
   return {
     getExpenses, getIncome,
     addExpense, addIncome,
@@ -67,5 +71,6 @@ const Storage = (() => {
     markExpenseSynced, markIncomeSynced,
     upsertExpense, upsertIncome,
     getPendingExpenses, getPendingIncome,
+    clearIncome, clearExpenses,
   };
 })();
