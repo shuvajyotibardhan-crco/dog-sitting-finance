@@ -102,13 +102,13 @@ const App = (() => {
     btn.classList.add('syncing');
     btn.disabled = true;
     try {
-      const { exp, inc } = await Sheets.pullYear(selectedYear);
+      const { added, removed, exp, inc } = await Sheets.pullYear(selectedYear);
       render();
-      if (exp + inc > 0) {
-        toast(`Synced: ${exp} expense${exp !== 1 ? 's' : ''}, ${inc} income row${inc !== 1 ? 's' : ''} added`, 'success');
-      } else {
-        toast('Already up to date', 'info');
-      }
+      const parts = [];
+      if (exp.added)   parts.push(`${exp.added} expense${exp.added !== 1 ? 's' : ''} added`);
+      if (inc.added)   parts.push(`${inc.added} income row${inc.added !== 1 ? 's' : ''} added`);
+      if (removed)     parts.push(`${removed} deleted from sheet removed`);
+      toast(parts.length ? parts.join(', ') : 'Already up to date', parts.length ? 'success' : 'info');
     } catch (err) {
       toast('Sync failed: ' + err.message, 'error');
     } finally {

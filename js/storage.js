@@ -56,6 +56,32 @@ const Storage = (() => {
     return false;
   }
 
+  // ── Deletion sync: remove local rows absent from sheet ──────
+  // Only removes synced rows — locally-added pending rows are never deleted.
+  function removeExpensesNotInSheet(year, sheetKeySet) {
+    const all = getExpenses();
+    const kept = all.filter(e => {
+      if (!e.date.startsWith(String(year))) return true; // different year — keep
+      if (!e.synced) return true;                         // pending local add — keep
+      return sheetKeySet.has(expKey(e));
+    });
+    const removed = all.length - kept.length;
+    if (removed > 0) _saveExp(kept);
+    return removed;
+  }
+
+  function removeIncomeNotInSheet(year, sheetKeySet) {
+    const all = getIncome();
+    const kept = all.filter(i => {
+      if (!i.date.startsWith(String(year))) return true;
+      if (!i.synced) return true;
+      return sheetKeySet.has(incKey(i));
+    });
+    const removed = all.length - kept.length;
+    if (removed > 0) _saveInc(kept);
+    return removed;
+  }
+
   // ── Pending (not yet synced) ────────────────────────────────
   function getPendingExpenses() { return getExpenses().filter(e => !e.synced); }
   function getPendingIncome()   { return getIncome().filter(i => !i.synced); }
@@ -70,6 +96,8 @@ const Storage = (() => {
     removeExpense, removeIncome,
     markExpenseSynced, markIncomeSynced,
     upsertExpense, upsertIncome,
+    expKey, incKey,
+    removeExpensesNotInSheet, removeIncomeNotInSheet,
     getPendingExpenses, getPendingIncome,
     clearIncome, clearExpenses,
   };

@@ -121,32 +121,37 @@ const Sheets = (() => {
     try {
       data = await api(readUrl(expTab(year)));
     } catch (e) {
-      // Tab might not exist yet — treat as empty
-      if (e.message.includes('Unable to parse range') || e.message.includes('404')) return 0;
+      if (e.message.includes('Unable to parse range') || e.message.includes('404')) return { added: 0, removed: 0 };
       throw e;
     }
-    if (!data.values || data.values.length <= 1) return 0;
 
-    let added = 0;
-    for (const row of data.values) {
+    const sheetRows = [];
+    const sheetKeys = new Set();
+
+    for (const row of (data.values || [])) {
       const date = normaliseDate(row[0]);
-      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue; // skip non-date rows (headers)
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
       const amount = parseFloat(String(row[2]).replace(/[^0-9.-]/g, ''));
       if (isNaN(amount) || amount === 0) continue;
 
-      const ok = Storage.upsertExpense({
-        id:        crypto.randomUUID(),
-        date,
+      const e = {
+        id: crypto.randomUUID(), date,
         expense:   row[1] || '',
         amount,
         store:     row[3] || '',
         remarks:   row[4] || '',
-        synced:    true,
-        createdAt: new Date().toISOString(),
-      });
-      if (ok) added++;
+        synced: true, createdAt: new Date().toISOString(),
+      };
+      sheetKeys.add(Storage.expKey(e));
+      sheetRows.push(e);
     }
-    return added;
+
+    let added = 0;
+    for (const e of sheetRows) { if (Storage.upsertExpense(e)) added++; }
+
+    // Remove local rows that were deleted from the sheet
+    const removed = Storage.removeExpensesNotInSheet(year, sheetKeys);
+    return { added, removed };
   }
 
   // ── Pull income for a given year ────────────────────────────
@@ -155,39 +160,45 @@ const Sheets = (() => {
     try {
       data = await api(readUrl(incTab(year)));
     } catch (e) {
-      if (e.message.includes('Unable to parse range') || e.message.includes('404')) return 0;
+      if (e.message.includes('Unable to parse range') || e.message.includes('404')) return { added: 0, removed: 0 };
       throw e;
     }
-    if (!data.values || data.values.length <= 1) return 0;
 
-    let added = 0;
-    for (const row of data.values) {
+    const sheetRows = [];
+    const sheetKeys = new Set();
+
+    for (const row of (data.values || [])) {
       const date = normaliseDate(row[0]);
-      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue; // skip non-date rows (headers)
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
       const income = parseFloat(String(row[2]).replace(/[^0-9.-]/g, ''));
       if (isNaN(income) || income === 0) continue;
 
       const { dogName, incomeType } = parseDogName(row[1]);
-
-      const ok = Storage.upsertIncome({
-        id:         crypto.randomUUID(),
-        date,
-        dogName,
-        incomeType,
-        income,
-        source:     row[3] || '',
-        synced:     true,
-        createdAt:  new Date().toISOString(),
-      });
-      if (ok) added++;
+      const i = {
+        id: crypto.randomUUID(), date, dogName, incomeType, income,
+        source: row[3] || '',
+        synced: true, createdAt: new Date().toISOString(),
+      };
+      sheetKeys.add(Storage.incKey(i));
+      sheetRows.push(i);
     }
-    return added;
+
+    let added = 0;
+    for (const i of sheetRows) { if (Storage.upsertIncome(i)) added++; }
+
+    // Remove local rows that were deleted from the sheet
+    const removed = Storage.removeIncomeNotInSheet(year, sheetKeys);
+    return { added, removed };
   }
 
   // ── Pull both sheets for a year ─────────────────────────────
   async function pullYear(year) {
     const [exp, inc] = await Promise.all([pullExpenses(year), pullIncome(year)]);
-    return { exp, inc };
+    return {
+      added:   exp.added   + inc.added,
+      removed: exp.removed + inc.removed,
+      exp, inc,
+    };
   }
 
   return { pushExpense, pushIncome, pushPending, pullYear };
