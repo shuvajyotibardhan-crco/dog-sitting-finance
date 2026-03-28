@@ -14,8 +14,8 @@ const CONFIG = {
   // ③ Tab name patterns — use {year} as a placeholder.
   //    Must exactly match the tab names in your Google Sheet.
   //    e.g. if your tabs are "2025 Expense" and "2025 Income":
-  TAB_EXPENSE: '{year} Expense',
-  TAB_INCOME:  '{year} Income',
+  TAB_EXPENSE: 'Expense-{year}',
+  TAB_INCOME:  'Income-{year}',
 
   // ④ Currency symbol shown in the UI
   CURRENCY: '£',
