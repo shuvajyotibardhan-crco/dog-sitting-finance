@@ -104,13 +104,20 @@ const App = (() => {
     btn.classList.add('syncing');
     btn.disabled = true;
     try {
+      // ① Push any locally-pending rows first
+      const { exp: pushedExp, inc: pushedInc } = await Sheets.pushPending();
+
+      // ② Pull from sheet (adds missing, removes deleted)
       const { added, removed, exp, inc } = await Sheets.pullYear(selectedYear);
       render();
+
       const parts = [];
+      const pushed = pushedExp + pushedInc;
+      if (pushed)      parts.push(`${pushed} pending row${pushed !== 1 ? 's' : ''} pushed`);
       if (exp.added)   parts.push(`${exp.added} expense${exp.added !== 1 ? 's' : ''} added`);
       if (inc.added)   parts.push(`${inc.added} income row${inc.added !== 1 ? 's' : ''} added`);
-      if (removed)     parts.push(`${removed} deleted from sheet removed`);
-      toast(parts.length ? parts.join(', ') : 'Already up to date', parts.length ? 'success' : 'info');
+      if (removed)     parts.push(`${removed} removed (deleted from sheet)`);
+      toast(parts.length ? parts.join(' · ') : 'Already up to date', parts.length ? 'success' : 'info');
     } catch (err) {
       toast('Sync failed: ' + err.message, 'error');
     } finally {
@@ -423,6 +430,14 @@ const App = (() => {
   function render() {
     renderExpenses();
     renderIncome();
+    updatePendingBadge();
+  }
+
+  function updatePendingBadge() {
+    const n = Storage.getPendingExpenses().length + Storage.getPendingIncome().length;
+    const badge = document.getElementById('pending-badge');
+    badge.textContent = n;
+    badge.classList.toggle('hidden', n === 0);
   }
 
   // ── Render expenses ───────────────────────────────────────────

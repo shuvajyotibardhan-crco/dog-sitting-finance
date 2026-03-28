@@ -19,8 +19,9 @@
     </div>
   </div>
   <div class="header-right">
-    <button id="sync-btn" class="btn btn-secondary" disabled title="Pull data from Google Sheets">
+    <button id="sync-btn" class="btn btn-secondary" disabled title="Push pending + pull from Google Sheets">
       <span class="sync-icon">↻</span> Sync
+      <span id="pending-badge" class="pending-badge hidden">0</span>
     </button>
     <button id="add-btn" class="btn btn-primary">+ Add</button>
     <div id="auth-section">
