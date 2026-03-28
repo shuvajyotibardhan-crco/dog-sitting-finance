@@ -143,6 +143,15 @@ body {
 .btn-resync:hover { background: #dbeafe; }
 .btn-resync:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.btn-delete-sel {
+  background: #fef2f2; color: #991b1b;
+  border: 1px solid #fecaca; cursor: pointer;
+  padding: 6px 12px; border-radius: 7px; font-size: 0.8rem; font-weight: 500;
+  white-space: nowrap;
+}
+.btn-delete-sel:hover { background: #fee2e2; }
+.btn-delete-sel:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .col-check { width: 32px; text-align: center; }
 .col-check input[type="checkbox"],
 .row-check { cursor: pointer; width: 14px; height: 14px; accent-color: var(--primary); }

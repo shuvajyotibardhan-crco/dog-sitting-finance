@@ -191,6 +191,99 @@ const Sheets = (() => {
     return { added, removed };
   }
 
+  // ── Delete rows from sheet ───────────────────────────────────
+
+  // Cache tab gids so we don't fetch metadata on every delete
+  const _tabIdCache = {};
+  async function getTabSheetId(tabName) {
+    if (_tabIdCache[tabName] !== undefined) return _tabIdCache[tabName];
+    const meta = await api(
+      `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}?fields=sheets.properties`
+    );
+    meta.sheets.forEach(s => { _tabIdCache[s.properties.title] = s.properties.sheetId; });
+    if (_tabIdCache[tabName] === undefined) throw new Error(`Tab "${tabName}" not found in spreadsheet`);
+    return _tabIdCache[tabName];
+  }
+
+  // Compute a comparable key from a raw sheet row (expense)
+  function expRowKey(row) {
+    const date = normaliseDate(row[0]);
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    const amount = parseFloat(String(row[2] || '').replace(/[^0-9.-]/g, ''));
+    if (isNaN(amount)) return null;
+    return Storage.expKey({ date, expense: row[1] || '', amount, store: row[3] || '' });
+  }
+
+  // Compute a comparable key from a raw sheet row (income)
+  function incRowKey(row) {
+    const date = normaliseDate(row[0]);
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+    const income = parseFloat(String(row[2] || '').replace(/[^0-9.-]/g, ''));
+    if (isNaN(income)) return null;
+    const { dogName, incomeType } = parseDogName(row[1]);
+    return Storage.incKey({ date, dogName, incomeType, income, source: row[3] || '' });
+  }
+
+  // Core: find rows in a tab by content key and delete them
+  async function deleteRowsByKey(tabName, keySet, rowKeyFn) {
+    const data = await api(readUrl(tabName));
+    if (!data.values || data.values.length === 0) return 0;
+
+    // Find 0-based row indices whose content key is in keySet
+    const indices = [];
+    data.values.forEach((row, idx) => {
+      const k = rowKeyFn(row);
+      if (k && keySet.has(k)) indices.push(idx);
+    });
+    if (indices.length === 0) return 0;
+
+    const sheetId = await getTabSheetId(tabName);
+
+    // Delete from bottom to top so earlier indices stay valid
+    indices.sort((a, b) => b - a);
+    await api(`https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}:batchUpdate`, {
+      method: 'POST',
+      body: JSON.stringify({
+        requests: indices.map(idx => ({
+          deleteDimension: {
+            range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx + 1 }
+          }
+        }))
+      })
+    });
+    return indices.length;
+  }
+
+  // Delete specific expense records from their sheet tab(s)
+  async function deleteExpenseRows(expenses) {
+    const byYear = {};
+    expenses.forEach(e => {
+      const yr = e.date.substring(0, 4);
+      if (!byYear[yr]) byYear[yr] = new Set();
+      byYear[yr].add(Storage.expKey(e));
+    });
+    let total = 0;
+    for (const [yr, keys] of Object.entries(byYear)) {
+      total += await deleteRowsByKey(expTab(yr), keys, expRowKey);
+    }
+    return total;
+  }
+
+  // Delete specific income records from their sheet tab(s)
+  async function deleteIncomeRows(incomeRows) {
+    const byYear = {};
+    incomeRows.forEach(i => {
+      const yr = i.date.substring(0, 4);
+      if (!byYear[yr]) byYear[yr] = new Set();
+      byYear[yr].add(Storage.incKey(i));
+    });
+    let total = 0;
+    for (const [yr, keys] of Object.entries(byYear)) {
+      total += await deleteRowsByKey(incTab(yr), keys, incRowKey);
+    }
+    return total;
+  }
+
   // ── Pull both sheets for a year ─────────────────────────────
   async function pullYear(year) {
     const [exp, inc] = await Promise.all([pullExpenses(year), pullIncome(year)]);
@@ -201,5 +294,5 @@ const Sheets = (() => {
     };
   }
 
-  return { pushExpense, pushIncome, pushPending, pullYear };
+  return { pushExpense, pushIncome, pushPending, pullYear, deleteExpenseRows, deleteIncomeRows };
 })();

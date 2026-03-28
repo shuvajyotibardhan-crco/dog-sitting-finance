@@ -220,18 +220,22 @@ const App = (() => {
       updateResyncBtn('inc', incSelected);
     });
 
-    // Re-sync buttons
+    // Re-sync and delete buttons
     document.getElementById('exp-resync').addEventListener('click', () => resyncSelected('expenses'));
     document.getElementById('inc-resync').addEventListener('click', () => resyncSelected('income'));
+    document.getElementById('exp-delete').addEventListener('click', () => deleteSelected('expenses'));
+    document.getElementById('inc-delete').addEventListener('click', () => deleteSelected('income'));
   }
 
   function updateResyncBtn(prefix, selected) {
-    const btn = document.getElementById(`${prefix}-resync`);
-    if (selected.size > 0) {
-      btn.classList.remove('hidden');
-      btn.textContent = `↻ Re-sync selected (${selected.size})`;
-    } else {
-      btn.classList.add('hidden');
+    const show = selected.size > 0;
+    const resyncBtn = document.getElementById(`${prefix}-resync`);
+    const deleteBtn = document.getElementById(`${prefix}-delete`);
+    resyncBtn.classList.toggle('hidden', !show);
+    deleteBtn.classList.toggle('hidden', !show);
+    if (show) {
+      resyncBtn.textContent = `↻ Re-sync selected (${selected.size})`;
+      deleteBtn.textContent = `🗑 Delete selected (${selected.size})`;
     }
   }
 
@@ -413,17 +417,79 @@ const App = (() => {
     submitBtn.textContent = 'Add Income';
   }
 
-  // ── Delete (local only) ───────────────────────────────────────
-  function deleteExpense(id) {
-    if (!confirm('Remove this expense from the app?\n(It will NOT be deleted from Google Sheets.)')) return;
+  // ── Delete (app + sheet) ──────────────────────────────────────
+  async function deleteExpense(id) {
+    if (!confirm('Delete this expense from the app and Google Sheets?')) return;
+    const row = Storage.getExpenses().find(e => e.id === id);
     Storage.removeExpense(id);
     render();
+    if (row && row.synced && Auth.isConnected()) {
+      try {
+        await Sheets.deleteExpenseRows([row]);
+        toast('Deleted from app and sheet', 'success');
+      } catch (err) {
+        toast('Removed from app — sheet delete failed: ' + err.message, 'error');
+      }
+    } else {
+      toast('Deleted' + (!row?.synced ? ' (was not yet in sheet)' : ''), 'info');
+    }
   }
 
-  function deleteIncome(id) {
-    if (!confirm('Remove this income row from the app?\n(It will NOT be deleted from Google Sheets.)')) return;
+  async function deleteIncome(id) {
+    if (!confirm('Delete this income row from the app and Google Sheets?')) return;
+    const row = Storage.getIncome().find(i => i.id === id);
     Storage.removeIncome(id);
     render();
+    if (row && row.synced && Auth.isConnected()) {
+      try {
+        await Sheets.deleteIncomeRows([row]);
+        toast('Deleted from app and sheet', 'success');
+      } catch (err) {
+        toast('Removed from app — sheet delete failed: ' + err.message, 'error');
+      }
+    } else {
+      toast('Deleted' + (!row?.synced ? ' (was not yet in sheet)' : ''), 'info');
+    }
+  }
+
+  async function deleteSelected(tab) {
+    const selected = tab === 'expenses' ? expSelected : incSelected;
+    const count = selected.size;
+    if (!confirm(`Delete ${count} row${count !== 1 ? 's' : ''} from the app and Google Sheets?`)) return;
+
+    const prefix = tab === 'expenses' ? 'exp' : 'inc';
+    const btn = document.getElementById(`${prefix}-resync`);
+    const delBtn = document.getElementById(`${prefix}-delete`);
+    delBtn.disabled = true;
+    delBtn.textContent = 'Deleting…';
+
+    const ids = [...selected];
+    const rows = (tab === 'expenses' ? Storage.getExpenses() : Storage.getIncome())
+      .filter(r => ids.includes(r.id));
+    const syncedRows = rows.filter(r => r.synced);
+
+    // Remove from local storage
+    ids.forEach(id => tab === 'expenses' ? Storage.removeExpense(id) : Storage.removeIncome(id));
+    selected.clear();
+    render();
+
+    // Delete synced rows from sheet
+    if (syncedRows.length > 0 && Auth.isConnected()) {
+      try {
+        const deleted = await (tab === 'expenses'
+          ? Sheets.deleteExpenseRows(syncedRows)
+          : Sheets.deleteIncomeRows(syncedRows));
+        toast(`Deleted ${count} row${count !== 1 ? 's' : ''} from app and sheet`, 'success');
+      } catch (err) {
+        toast(`Removed from app — sheet delete failed: ${err.message}`, 'error');
+      }
+    } else {
+      toast(`Deleted ${count} row${count !== 1 ? 's' : ''}`, 'info');
+    }
+
+    delBtn.disabled = false;
+    delBtn.textContent = `Delete selected (0)`;
+    updateResyncBtn(prefix, selected);
   }
 
   // ── Render ────────────────────────────────────────────────────
