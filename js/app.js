@@ -37,6 +37,8 @@ const App = (() => {
       e.preventDefault();
       document.getElementById('setup-banner').classList.add('hidden');
     });
+    // Sync currency symbol in form labels
+    document.querySelectorAll('.currency-label').forEach(el => el.textContent = CONFIG.CURRENCY);
   }
 
   // ── Year selector ────────────────────────────────────────────

@@ -82,7 +82,7 @@ const Sheets = (() => {
   }
 
   function toDogField(dogName, incomeType) {
-    return incomeType === 'Tips' ? `${dogName}-tips` : dogName;
+    return incomeType === 'Tips' ? `${dogName}-Tips` : dogName;
   }
 
   // ── Push one expense to sheet ───────────────────────────────
