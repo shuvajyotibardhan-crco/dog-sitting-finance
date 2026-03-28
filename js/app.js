@@ -9,8 +9,8 @@ const App = (() => {
   let selectedYear  = CURR_YEAR;
 
   // Filter state
-  const EF = { from: '', to: '', store: '', remarks: '' };
-  const IF = { from: '', to: '', dog:   '', source: '', type: '' };
+  const EF = { from: '', to: '', store: '', remarks: '', sort: 'desc' };
+  const IF = { from: '', to: '', dog:   '', source: '', type: '', sort: 'desc' };
 
   // ── Bootstrap ───────────────────────────────────────────────
   function init() {
@@ -132,6 +132,7 @@ const App = (() => {
     document.getElementById('exp-to').addEventListener('input',      e => { EF.to      = e.target.value; renderExpenses(); });
     document.getElementById('exp-store').addEventListener('change',  e => { EF.store   = e.target.value; renderExpenses(); });
     document.getElementById('exp-remarks').addEventListener('change',e => { EF.remarks = e.target.value; renderExpenses(); });
+    document.getElementById('exp-sort').addEventListener('change',   e => { EF.sort    = e.target.value; renderExpenses(); });
     document.getElementById('exp-clear').addEventListener('click', () => {
       resetExpenseFilters(); renderExpenses();
     });
@@ -142,26 +143,29 @@ const App = (() => {
     document.getElementById('inc-dog').addEventListener('change',    e => { IF.dog    = e.target.value; renderIncome(); });
     document.getElementById('inc-source').addEventListener('change', e => { IF.source = e.target.value; renderIncome(); });
     document.getElementById('inc-type').addEventListener('change',   e => { IF.type   = e.target.value; renderIncome(); });
+    document.getElementById('inc-sort').addEventListener('change',   e => { IF.sort   = e.target.value; renderIncome(); });
     document.getElementById('inc-clear').addEventListener('click', () => {
       resetIncomeFilters(); renderIncome();
     });
   }
 
   function resetExpenseFilters() {
-    Object.assign(EF, { from: '', to: '', store: '', remarks: '' });
+    Object.assign(EF, { from: '', to: '', store: '', remarks: '', sort: 'desc' });
     document.getElementById('exp-from').value    = '';
     document.getElementById('exp-to').value      = '';
     document.getElementById('exp-store').value   = '';
     document.getElementById('exp-remarks').value = '';
+    document.getElementById('exp-sort').value    = 'desc';
   }
 
   function resetIncomeFilters() {
-    Object.assign(IF, { from: '', to: '', dog: '', source: '', type: '' });
+    Object.assign(IF, { from: '', to: '', dog: '', source: '', type: '', sort: 'desc' });
     document.getElementById('inc-from').value   = '';
     document.getElementById('inc-to').value     = '';
     document.getElementById('inc-dog').value    = '';
     document.getElementById('inc-source').value = '';
     document.getElementById('inc-type').value   = '';
+    document.getElementById('inc-sort').value   = 'desc';
   }
 
   function resetFilters() { resetExpenseFilters(); resetIncomeFilters(); }
@@ -342,7 +346,10 @@ const App = (() => {
     if (EF.remarks === 'yes') rows = rows.filter(e => e.remarks && e.remarks.trim());
     if (EF.remarks === 'no')  rows = rows.filter(e => !e.remarks || !e.remarks.trim());
 
-    rows.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+    rows.sort((a, b) => {
+      const cmp = a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt);
+      return EF.sort === 'asc' ? cmp : -cmp;
+    });
 
     const total = rows.reduce((s, e) => s + e.amount, 0);
     document.getElementById('exp-count').textContent = rows.length;
@@ -390,7 +397,10 @@ const App = (() => {
     if (IF.source) rows = rows.filter(i => i.source  === IF.source);
     if (IF.type)   rows = rows.filter(i => i.incomeType === IF.type);
 
-    rows.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+    rows.sort((a, b) => {
+      const cmp = a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt);
+      return IF.sort === 'asc' ? cmp : -cmp;
+    });
 
     const total = rows.reduce((s, i) => s + i.income, 0);
     document.getElementById('inc-count').textContent = rows.length;
