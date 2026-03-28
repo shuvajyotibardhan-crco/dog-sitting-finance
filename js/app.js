@@ -130,7 +130,7 @@ const App = (() => {
     // Expense filters
     document.getElementById('exp-from').addEventListener('input',    e => { EF.from    = e.target.value; renderExpenses(); });
     document.getElementById('exp-to').addEventListener('input',      e => { EF.to      = e.target.value; renderExpenses(); });
-    document.getElementById('exp-store').addEventListener('input',   e => { EF.store   = e.target.value; renderExpenses(); });
+    document.getElementById('exp-store').addEventListener('change',  e => { EF.store   = e.target.value; renderExpenses(); });
     document.getElementById('exp-remarks').addEventListener('change',e => { EF.remarks = e.target.value; renderExpenses(); });
     document.getElementById('exp-clear').addEventListener('click', () => {
       resetExpenseFilters(); renderExpenses();
@@ -333,9 +333,12 @@ const App = (() => {
       .filter(e => e.date && e.date.startsWith(String(selectedYear)));
 
     // Apply filters
+    // Populate store dropdown before filtering
+    populateStoreFilter(rows);
+
     if (EF.from)    rows = rows.filter(e => e.date >= EF.from);
     if (EF.to)      rows = rows.filter(e => e.date <= EF.to);
-    if (EF.store)   rows = rows.filter(e => (e.store || '').toLowerCase().includes(EF.store.toLowerCase()));
+    if (EF.store)   rows = rows.filter(e => e.store === EF.store);
     if (EF.remarks === 'yes') rows = rows.filter(e => e.remarks && e.remarks.trim());
     if (EF.remarks === 'no')  rows = rows.filter(e => !e.remarks || !e.remarks.trim());
 
@@ -422,6 +425,14 @@ const App = (() => {
         </td>
       </tr>
     `).join('');
+  }
+
+  function populateStoreFilter(yearRows) {
+    const stores = [...new Set(yearRows.map(e => e.store).filter(Boolean))].sort();
+    const sel = document.getElementById('exp-store');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All Stores</option>'
+      + stores.map(s => `<option value="${esc(s)}"${s === cur ? ' selected' : ''}>${esc(s)}</option>`).join('');
   }
 
   function populateIncomeFilters(yearRows) {

@@ -15,7 +15,7 @@ const Storage = (() => {
 
   // ── Add ─────────────────────────────────────────────────────
   function addExpense(e)  { const a = getExpenses(); a.push(e); _saveExp(a); return e; }
-  function addIncome(i)   { const a = getIncome();   a.push(i); _saveInc(i); return i; }
+  function addIncome(i)   { const a = getIncome();   a.push(i); _saveInc(a); return i; }
 
   // ── Remove ──────────────────────────────────────────────────
   function removeExpense(id) { _saveExp(getExpenses().filter(e => e.id !== id)); }

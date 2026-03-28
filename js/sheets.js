@@ -44,9 +44,16 @@ const Sheets = (() => {
   function normaliseDate(str) {
     if (!str) return '';
     str = String(str).trim();
+    // YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    // DD/MM/YYYY or D/M/YYYY
     const ddmm = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (ddmm) return `${ddmm[3]}-${ddmm[2].padStart(2,'0')}-${ddmm[1].padStart(2,'0')}`;
+    // DDMMYYYY (8 digits, no separator)
+    if (/^\d{8}$/.test(str)) {
+      return `${str.slice(4)}-${str.slice(2,4)}-${str.slice(0,2)}`;
+    }
+    // Fallback: try Date constructor
     const d = new Date(str);
     if (!isNaN(d)) return d.toISOString().split('T')[0];
     return str;
@@ -108,11 +115,11 @@ const Sheets = (() => {
     if (!data.values || data.values.length <= 1) return 0;
 
     let added = 0;
-    for (const row of data.values.slice(1)) {       // skip header row
+    for (const row of data.values) {
       const date = normaliseDate(row[0]);
-      if (!date) continue;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue; // skip non-date rows (headers)
       const amount = parseFloat(String(row[2]).replace(/[^0-9.-]/g, ''));
-      if (isNaN(amount)) continue;
+      if (isNaN(amount) || amount === 0) continue;
 
       const ok = Storage.upsertExpense({
         id:        crypto.randomUUID(),
@@ -141,11 +148,11 @@ const Sheets = (() => {
     if (!data.values || data.values.length <= 1) return 0;
 
     let added = 0;
-    for (const row of data.values.slice(1)) {
+    for (const row of data.values) {
       const date = normaliseDate(row[0]);
-      if (!date) continue;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue; // skip non-date rows (headers)
       const income = parseFloat(String(row[2]).replace(/[^0-9.-]/g, ''));
-      if (isNaN(income)) continue;
+      if (isNaN(income) || income === 0) continue;
 
       const { dogName, incomeType } = parseDogName(row[1]);
 

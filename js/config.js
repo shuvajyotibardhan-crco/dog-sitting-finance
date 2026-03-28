@@ -6,7 +6,7 @@
 const CONFIG = {
 
   // ① Your Google OAuth 2.0 Client ID (from Google Cloud Console)
-  CLIENT_ID: 'YOUR_GOOGLE_CLIENT_ID_HERE',
+  CLIENT_ID: '20551681777-ohgtlomgggm8iqtkgv321kd4gekgi8s4.apps.googleusercontent.com',
 
   // ② Your Google Sheet ID — already filled in from your sheet URL
   SHEET_ID: '1368w-lEeEpDkNK3PxguJjFPmLNAf6n3ITyHeP8pYF34',
