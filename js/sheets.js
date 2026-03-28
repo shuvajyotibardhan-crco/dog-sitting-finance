@@ -41,19 +41,29 @@ const Sheets = (() => {
 
   // ── Date normalisation ──────────────────────────────────────
   // Handles DD/MM/YYYY, YYYY-MM-DD, and anything Date() can parse
+  const MONTH_MAP = {
+    jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12
+  };
+
   function normaliseDate(str) {
     if (!str) return '';
     str = String(str).trim();
     // YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
     // DD/MM/YYYY or D/M/YYYY
-    const ddmm = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (ddmm) return `${ddmm[3]}-${ddmm[2].padStart(2,'0')}-${ddmm[1].padStart(2,'0')}`;
+    const slashFmt = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashFmt) return `${slashFmt[3]}-${slashFmt[2].padStart(2,'0')}-${slashFmt[1].padStart(2,'0')}`;
+    // ddMMMyyyy  e.g. "01Jan2025"
+    const dmyFmt = str.match(/^(\d{1,2})([A-Za-z]{3})(\d{4})$/);
+    if (dmyFmt) {
+      const mo = MONTH_MAP[dmyFmt[2].toLowerCase()];
+      if (mo) return `${dmyFmt[3]}-${String(mo).padStart(2,'0')}-${dmyFmt[1].padStart(2,'0')}`;
+    }
     // DDMMYYYY (8 digits, no separator)
     if (/^\d{8}$/.test(str)) {
       return `${str.slice(4)}-${str.slice(2,4)}-${str.slice(0,2)}`;
     }
-    // Fallback: try Date constructor
+    // Fallback
     const d = new Date(str);
     if (!isNaN(d)) return d.toISOString().split('T')[0];
     return str;

@@ -75,6 +75,10 @@
         </select>
       </div>
       <button class="btn btn-clear" id="exp-clear">Clear</button>
+      <div class="filter-total">
+        <div class="ft-label"><span id="exp-count">0</span> rows</div>
+        <div class="ft-value" id="exp-total">$0.00</div>
+      </div>
     </div>
 
     <div class="table-wrapper">
@@ -91,15 +95,6 @@
           </tr>
         </thead>
         <tbody id="expense-body"></tbody>
-        <tfoot>
-          <tr class="total-row">
-            <td colspan="2" class="total-label">
-              Total — <span id="exp-count">0</span> rows
-            </td>
-            <td class="total-amount col-num" id="exp-total">£0.00</td>
-            <td colspan="4"></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   </section>
@@ -133,6 +128,10 @@
         </select>
       </div>
       <button class="btn btn-clear" id="inc-clear">Clear</button>
+      <div class="filter-total">
+        <div class="ft-label"><span id="inc-count">0</span> rows</div>
+        <div class="ft-value" id="inc-total">$0.00</div>
+      </div>
     </div>
 
     <div class="table-wrapper">
@@ -149,15 +148,6 @@
           </tr>
         </thead>
         <tbody id="income-body"></tbody>
-        <tfoot>
-          <tr class="total-row">
-            <td colspan="2" class="total-label">
-              Total — <span id="inc-count">0</span> rows
-            </td>
-            <td class="total-amount col-num" id="inc-total">£0.00</td>
-            <td colspan="4"></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   </section>

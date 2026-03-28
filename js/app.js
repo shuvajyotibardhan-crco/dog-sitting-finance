@@ -457,10 +457,11 @@ const App = (() => {
     })}`;
   }
 
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function fmtDate(d) {
     if (!d) return '';
     const [y, m, day] = d.split('-');
-    return `${day}/${m}/${y}`;
+    return `${day}${MONTHS[parseInt(m, 10) - 1]}${y}`;
   }
 
   function esc(s) {

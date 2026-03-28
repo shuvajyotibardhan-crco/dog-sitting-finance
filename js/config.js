@@ -18,7 +18,7 @@ const CONFIG = {
   TAB_INCOME:  'Income-{year}',
 
   // ④ Currency symbol shown in the UI
-  CURRENCY: '£',
+  CURRENCY: '$',
 
   // ⑤ Earliest year to show in the year selector
   START_YEAR: 2023,

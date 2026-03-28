@@ -301,22 +301,29 @@ body {
 }
 .delete-btn:hover { color: var(--expense); }
 
-/* ══ Table footer / Total row ═══════════════════════════════ */
-.total-row {
-  background: #f0f4ff;
-  border-top: 2px solid var(--border);
+/* ══ Filter bar total (top-right of filter bar) ═════════════ */
+.filter-total {
+  margin-left: auto;
+  padding-left: 16px;
+  border-left: 2px solid var(--border);
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
 }
-.total-row td {
-  padding: 10px 14px;
-  font-size: 0.82rem;
-  border-bottom: none !important;
+.ft-label {
+  font-size: 0.68rem;
+  color: var(--text-light);
+  font-weight: 500;
 }
-.total-label { color: var(--text-light); font-weight: 500; }
-.total-amount {
+.ft-value {
+  font-size: 1.25rem;
   font-weight: 700;
-  font-size: 0.95rem;
   color: var(--primary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 /* ══ Modal ═══════════════════════════════════════════════════ */
