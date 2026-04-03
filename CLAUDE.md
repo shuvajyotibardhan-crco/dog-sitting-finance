@@ -26,7 +26,7 @@ Each year has two tabs. Tab naming set in `js/config.js` via `TAB_EXPENSE` / `TA
 
 **Income tab** — 4 columns, row 1 = header:
 | A: Date | B: Dog Name | C: Income | D: Source |
-> Tips are stored as `DogName-tips` in column B. The app parses and displays these with Income Type = Tips.
+> Tips are stored as `DogName-Tips` (capital T) in column B. The app also parses lowercase `-tips` for backward compatibility. Both map to Income Type = Tips.
 
 ## File Structure
 ```
@@ -130,5 +130,6 @@ npx serve . -p 3000
 | Add expense/income (disconnected) | LocalStorage only; amber dot shown |
 | Reconnect Google | All pending rows auto-pushed |
 | Click Sync | Pulls sheet for selected year; adds missing rows |
-| Delete in app | Local only — sheet is NOT modified |
+| Delete in app (connected) | Removed from app AND sheet via batchUpdate API |
+| Delete in app (disconnected) | Local only — sheet is NOT modified; re-sync or manual sheet edit needed |
 | Past-year rows in sheet | Synced and displayed; cannot be added manually from app |

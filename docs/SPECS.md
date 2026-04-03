@@ -38,7 +38,7 @@
 |-----|-------|
 | `dogsit_expenses` | JSON array of Expense Records |
 | `dogsit_income` | JSON array of Income Records |
-| `dogsit_token` | `{ token: string, expiry: number }` — OAuth token + Unix timestamp |
+| `gauth_token` | `{ token: string, expiry: number }` — OAuth token + Unix timestamp |
 
 ---
 
@@ -55,7 +55,9 @@ Used to detect duplicate rows when pulling from the sheet. Keys are always lower
 ```
 {date}|{rawDogField.toLowerCase()}|{income}|{source.toLowerCase()}
 ```
-Where `rawDogField` = `dogName` for Regular, `dogName + "-tips"` for Tips.
+Where `rawDogField` = `dogName` for Regular, `dogName + "-tips"` (lowercase) for Tips.
+
+**Tips encoding note:** The app writes Tips rows to the sheet as `DogName-Tips` (capital T). When parsing from the sheet, `parseDogName()` recognises both `-Tips` and `-tips` suffixes for backward compatibility. The dedup key always uses lowercase `-tips` regardless of the suffix case found in the sheet.
 
 ---
 
@@ -79,7 +81,7 @@ Tab name pattern: configurable via `CONFIG.TAB_INCOME` (default: `Income-{year}`
 |-------|-------|-------|-------|
 | Date | Dog Name | Income | Source |
 
-- No header row in existing sheets — first row is data
+- No header row in existing sheets — first row is data. Rows with unparseable dates are silently skipped during import.
 - Tips encoded in column B as `DogName-Tips` (capital T)
 - App reads columns A–F (`!A:F` range) but income only uses A–D
 
@@ -181,6 +183,8 @@ pull full year from sheet
   → re-imports the rows with current sheet values
 ```
 
+**Design note:** Re-sync deletes and re-imports — it does not patch in place (the Sheets API has no "refresh single row" primitive). If a row has pending local changes AND was edited in the sheet, the sheet version wins.
+
 ### Delete from Sheet
 ```
 build keySet from selected rows (grouped by year)
@@ -205,6 +209,8 @@ const CONFIG = {
   START_YEAR:  2023,              // earliest year in year selector
 };
 ```
+
+`NEXT_YEAR` is not in `CONFIG` — it is derived at runtime as `new Date().getFullYear() + 1`. The year selector spans `START_YEAR` through `NEXT_YEAR`. Add/edit is enabled only for `CURR_YEAR` and `NEXT_YEAR`; all earlier years are view-only.
 
 ---
 

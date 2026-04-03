@@ -126,6 +126,7 @@ The Sheets API does not offer a "delete row by content" primitive. Re-writing th
 ### Two-way sync design
 - **App → Sheet (push):** Immediate on entry if connected; deferred if not. Deferral handled by `synced: false` flag.
 - **Sheet → App (pull):** Manual via Sync button. Pull is additive (upsert) plus deletion-mirror. It does not overwrite pending (unsynced) rows.
+- **Sync ordering:** When the Sync button is clicked, push runs to completion **before** pull begins. This prevents pending rows from being treated as absent and deleted during the pull.
 - **Sheet edits:** Not auto-detected. User selects affected rows and clicks Re-sync, which drops and re-imports them.
 
 ### Year isolation

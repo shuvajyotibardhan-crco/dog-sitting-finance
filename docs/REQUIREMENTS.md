@@ -164,10 +164,13 @@ As a dog sitter I want to re-sync a specific row after editing it in the sheet s
 
 ### Acceptance Criteria
 1. Checkboxes **shall** allow selection of one or more rows.
-2. When rows are selected, a "↻ Re-sync selected (N)" button **shall** appear.
-3. Clicking Re-sync **shall** require Google Sheets to be connected.
-4. Re-sync **shall** remove the selected rows from LocalStorage then pull the full year from the sheet, which re-imports them with updated values.
-5. A toast **shall** confirm the count of re-synced rows.
+2. A "Select all" checkbox **shall** be available at the top of the checkbox column to toggle all visible rows.
+3. When rows are selected, a "↻ Re-sync selected (N)" button **shall** appear; the count N **must** update dynamically as selection changes.
+4. When rows are selected, a "Delete selected (N)" button **shall** also appear with a dynamically updating count.
+5. Clicking Re-sync **shall** require Google Sheets to be connected.
+6. Re-sync **shall** remove the selected rows from LocalStorage then pull the full year from the sheet, which re-imports them with updated values.
+7. A toast **shall** confirm the count of re-synced rows.
+8. Selection state **shall** persist across table re-renders (e.g. when filters change); rows that become filtered out are automatically deselected.
 
 ### Test Plan
 | # | Step | Expected |
