@@ -110,6 +110,13 @@ POST https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}/values/{range}:app
   &insertDataOption=INSERT_ROWS
 ```
 
+### Sheets API — Values Update (edit row in-place — used internally by updateExpenseRow/updateIncomeRow via delete+append; direct PUT not currently used but listed for reference)
+```
+PUT https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}/values/{range}
+  ?valueInputOption=USER_ENTERED
+Body: { values: [[col_A, col_B, ...]] }
+```
+
 ### Sheets API — Batch Update (delete rows)
 ```
 POST https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}:batchUpdate
@@ -174,6 +181,22 @@ GET all rows from Income-{year} tab
   → same process for Income records
 ```
 
+### Edit Row (app → sheet)
+```
+capture oldRow from LocalStorage (needed for sheet delete key)
+update LocalStorage record with new field values + synced: false
+
+IF connected:
+  IF oldRow.synced === true:
+    deleteExpenseRows/deleteIncomeRows([oldRow])
+      → find row in sheet by content key, batchUpdate deleteDimension
+  pushExpense/pushIncome(updatedRow)
+    → POST append to sheet
+    → markExpenseSynced/markIncomeSynced(id) → LocalStorage synced: true
+ELSE:
+  row remains pending (amber dot); pushed on next Sync or reconnect
+```
+
 ### Row-Level Re-sync
 ```
 for each selected row:
@@ -210,7 +233,7 @@ const CONFIG = {
 };
 ```
 
-`NEXT_YEAR` is not in `CONFIG` — it is derived at runtime as `new Date().getFullYear() + 1`. The year selector spans `START_YEAR` through `NEXT_YEAR`. Add/edit is enabled only for `CURR_YEAR` and `NEXT_YEAR`; all earlier years are view-only.
+`NEXT_YEAR` is not in `CONFIG` — it is derived at runtime as `new Date().getFullYear() + 1`. The year selector spans `START_YEAR` through `NEXT_YEAR`. **Adding** new rows is restricted to `CURR_YEAR` and `NEXT_YEAR`; **editing** existing rows is allowed for all years.
 
 ---
 

@@ -284,6 +284,17 @@ const Sheets = (() => {
     return total;
   }
 
+  // ── Update a row in the sheet (delete old + append new) ─────
+  async function updateExpenseRow(oldRow, newRow) {
+    if (oldRow.synced) await deleteExpenseRows([oldRow]);
+    await pushExpense(newRow);
+  }
+
+  async function updateIncomeRow(oldRow, newRow) {
+    if (oldRow.synced) await deleteIncomeRows([oldRow]);
+    await pushIncome(newRow);
+  }
+
   // ── Pull both sheets for a year ─────────────────────────────
   async function pullYear(year) {
     const [exp, inc] = await Promise.all([pullExpenses(year), pullIncome(year)]);
@@ -294,5 +305,5 @@ const Sheets = (() => {
     };
   }
 
-  return { pushExpense, pushIncome, pushPending, pullYear, deleteExpenseRows, deleteIncomeRows };
+  return { pushExpense, pushIncome, pushPending, pullYear, deleteExpenseRows, deleteIncomeRows, updateExpenseRow, updateIncomeRow };
 })();

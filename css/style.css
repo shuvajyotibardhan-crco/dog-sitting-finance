@@ -305,7 +305,7 @@ tbody tr.selected-row { background: #eef2ff !important; }
 .col-date   { width: 96px; white-space: nowrap; }
 .col-num    { text-align: right; font-variant-numeric: tabular-nums; width: 100px; white-space: nowrap; }
 .col-sync   { width: 32px; text-align: center; }
-.col-action { width: 36px; text-align: center; }
+.col-action { width: 68px; text-align: center; white-space: nowrap; }
 
 /* Numeric amounts */
 .amt-expense { color: var(--expense); font-weight: 600; }
@@ -332,13 +332,14 @@ tbody tr.selected-row { background: #eef2ff !important; }
 /* Muted text */
 .muted { color: var(--text-light); }
 
-/* Delete button */
-.delete-btn {
+/* Edit / Delete row buttons */
+.edit-btn, .delete-btn {
   background: none; border: none; cursor: pointer;
   color: #d1d5db; padding: 3px 5px; border-radius: 4px;
   font-size: 0.8rem; line-height: 1;
   transition: color 0.15s;
 }
+.edit-btn:hover   { color: var(--primary); }
 .delete-btn:hover { color: var(--expense); }
 
 /* ══ Filter bar total (top-right of filter bar) ═════════════ */

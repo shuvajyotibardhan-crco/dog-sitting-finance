@@ -48,6 +48,22 @@ User submits form
     → app.js re-renders table (green dot)
 ```
 
+**Data flow — Edit a row:**
+```
+User clicks ✎ on a row
+  → app.js opens modal pre-filled with row data (editingId set)
+  → user modifies fields and submits
+  → storage.js.updateExpense/Income() → LocalStorage (synced: false)
+  → app.js re-renders table (amber dot)
+  → IF connected AND row was previously synced:
+      sheets.js.deleteExpenseRows/deleteIncomeRows() → batchUpdate to remove old row
+      sheets.js.pushExpense/pushIncome() → Sheets API append with new values
+      storage.js.markExpenseSynced() → LocalStorage (synced: true)
+      app.js re-renders table (green dot)
+  → IF connected AND row was pending (never synced):
+      sheets.js.pushExpense/pushIncome() → append only (no delete needed)
+```
+
 **Data flow — Sync:**
 ```
 User clicks Sync
@@ -85,6 +101,7 @@ LocalStorage CRUD layer. Two independent key spaces: `dogsit_expenses` and `dogs
 - All reads parse from JSON; writes serialise to JSON
 - `expKey(e)` — composite dedup key: `date|expense|amount|store` (all lowercase)
 - `incKey(i)` — composite dedup key: `date|rawDogField|income|source` (tips reconstructed)
+- `updateExpense/Income(id, updates)` — patches an existing record in-place using `Object.assign`; used by the edit flow
 - `upsertExpense/Income()` — used by pull sync; skips insert if key already exists
 - `removeExpensesNotInSheet(year, sheetKeySet)` — retains: different year rows, pending rows, and rows whose key is in the sheet set
 
@@ -96,12 +113,16 @@ All Google Sheets API v4 communication. Uses `fetch()` with Bearer token from `A
 - `parseDogName(raw)` — detects `-Tips` / `-tips` suffix; returns `{ dogName, incomeType }`
 - `toDogField(dogName, incomeType)` — writes `DogName-Tips` (capital T) for tips rows
 - `deleteRowsByKey(tabName, keySet, rowKeyFn)` — reads full tab, finds matching row indices, sends batchUpdate deleteDimension from bottom to top to preserve index validity
+- `updateExpenseRow/updateIncomeRow(oldRow, newRow)` — edits a synced row: deletes the old row by content key then appends the updated row; if the old row was pending (never synced) it simply appends
 - `_tabIdCache` — caches tab sheetIds fetched from spreadsheet metadata to avoid repeated API calls
 
 ### `js/app.js`
 Main controller. Bootstrapped by `DOMContentLoaded`.
 - `EF` / `IF` — plain objects holding current filter state for expenses and income respectively
 - `expSelected` / `incSelected` — Sets of selected row IDs; persist across re-renders
+- `editingId` / `editingType` — module-level state tracking which row is being edited; cleared by `closeModal()`
+- `openEditModal(type, id)` — opens the shared modal pre-filled with the row's current values; sets `editingId`
+- `saveEditedExpense/Income(id, btn)` — handles edit submit: updates LocalStorage, then calls `Sheets.updateExpenseRow/updateIncomeRow`
 - Rendering is full-replace (`innerHTML`); no virtual DOM or diffing
 - `fmtDate(d)` — formats ISO date as `ddMMMYYYY` (e.g. `01Jan2025`) for display
 - `esc(s)` — HTML-escapes all user-generated strings before insertion into innerHTML
@@ -129,8 +150,11 @@ The Sheets API does not offer a "delete row by content" primitive. Re-writing th
 - **Sync ordering:** When the Sync button is clicked, push runs to completion **before** pull begins. This prevents pending rows from being treated as absent and deleted during the pull.
 - **Sheet edits:** Not auto-detected. User selects affected rows and clicks Re-sync, which drops and re-imports them.
 
+### Why edit uses delete-then-append rather than in-place cell update
+The Sheets API's `values.update` (PUT) could overwrite specific cells, but it requires knowing the row's exact sheet index. Row indices are not stored locally — the app identifies rows by composite content key. Fetching the index and then updating in a separate call adds a round-trip and is not materially different from the existing delete-by-key + append pattern already proven for the delete feature. The trade-off is that edited rows move to the bottom of the sheet, which is acceptable for a personal ledger.
+
 ### Year isolation
-Each year's data lives in its own pair of sheet tabs. Pulls and pushes are year-scoped. This keeps API responses small and avoids cross-year key collisions. Past-year data is read-only in the app to prevent accidental edits to closed accounting periods.
+Each year's data lives in its own pair of sheet tabs. Pulls and pushes are year-scoped. This keeps API responses small and avoids cross-year key collisions. Past-year rows can be edited from the app (the year restriction applies only to adding new rows).
 
 ### Security
 - All user-generated strings rendered into innerHTML are HTML-escaped via `esc()` to prevent XSS.

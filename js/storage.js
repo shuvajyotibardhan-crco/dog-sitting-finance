@@ -21,6 +21,18 @@ const Storage = (() => {
   function removeExpense(id) { _saveExp(getExpenses().filter(e => e.id !== id)); }
   function removeIncome(id)  { _saveInc(getIncome().filter(i => i.id !== id)); }
 
+  // ── Update ──────────────────────────────────────────────────
+  function updateExpense(id, updates) {
+    const a = getExpenses(); const x = a.find(e => e.id === id);
+    if (x) { Object.assign(x, updates); _saveExp(a); return x; }
+    return null;
+  }
+  function updateIncome(id, updates) {
+    const a = getIncome(); const x = a.find(i => i.id === id);
+    if (x) { Object.assign(x, updates); _saveInc(a); return x; }
+    return null;
+  }
+
   // ── Mark synced ─────────────────────────────────────────────
   function markExpenseSynced(id) {
     const a = getExpenses(); const x = a.find(e => e.id === id);
@@ -93,6 +105,7 @@ const Storage = (() => {
   return {
     getExpenses, getIncome,
     addExpense, addIncome,
+    updateExpense, updateIncome,
     removeExpense, removeIncome,
     markExpenseSynced, markIncomeSynced,
     upsertExpense, upsertIncome,

@@ -16,6 +16,10 @@ const App = (() => {
   const expSelected = new Set();
   const incSelected = new Set();
 
+  // Edit state
+  let editingId   = null;
+  let editingType = null; // 'expense' | 'income'
+
   // ── Bootstrap ───────────────────────────────────────────────
   function init() {
     checkConfig();
@@ -289,10 +293,14 @@ const App = (() => {
 
   function openModal() {
     if (!canAdd()) return;
+    editingId   = null;
+    editingType = null;
     const isIncome = activeTab === 'income';
     document.getElementById('modal-title').textContent = isIncome ? 'Add Income' : 'Add Expense';
     document.getElementById('expense-form').classList.toggle('hidden', isIncome);
     document.getElementById('income-form').classList.toggle('hidden', !isIncome);
+    document.getElementById('exp-submit').textContent = 'Add Expense';
+    document.getElementById('inc-submit').textContent = 'Add Income';
 
     // Set default date to today (within selected year)
     const today = new Date();
@@ -303,10 +311,8 @@ const App = (() => {
     if (isIncome) {
       document.getElementById('income-form').reset();
       document.getElementById('i-date').value = dateStr;
-      // Constrain dates to selected year
       document.getElementById('i-date').min = `${selectedYear}-01-01`;
       document.getElementById('i-date').max = `${selectedYear}-12-31`;
-      // Populate autocomplete datalists
       populateDogDatalist();
       populateSourceDatalist();
     } else {
@@ -324,7 +330,59 @@ const App = (() => {
     }, 60);
   }
 
+  function openEditModal(type, id) {
+    editingId   = id;
+    editingType = type;
+    const isIncome = type === 'income';
+
+    document.getElementById('modal-title').textContent = isIncome ? 'Edit Income' : 'Edit Expense';
+    document.getElementById('expense-form').classList.toggle('hidden', isIncome);
+    document.getElementById('income-form').classList.toggle('hidden', !isIncome);
+    document.getElementById('exp-submit').textContent = 'Save Changes';
+    document.getElementById('inc-submit').textContent = 'Save Changes';
+
+    const rowYear = isIncome
+      ? (Storage.getIncome().find(i => i.id === id) || {}).date?.substring(0, 4)
+      : (Storage.getExpenses().find(e => e.id === id) || {}).date?.substring(0, 4);
+    const yr = parseInt(rowYear) || selectedYear;
+
+    if (isIncome) {
+      const row = Storage.getIncome().find(i => i.id === id);
+      if (!row) return;
+      document.getElementById('income-form').reset();
+      document.getElementById('i-date').value  = row.date;
+      document.getElementById('i-date').min    = `${yr}-01-01`;
+      document.getElementById('i-date').max    = `${yr}-12-31`;
+      document.getElementById('i-itype').value = row.incomeType;
+      document.getElementById('i-dog').value   = row.dogName;
+      document.getElementById('i-amount').value = row.income;
+      document.getElementById('i-source').value = row.source || '';
+      populateDogDatalist();
+      populateSourceDatalist();
+    } else {
+      const row = Storage.getExpenses().find(e => e.id === id);
+      if (!row) return;
+      document.getElementById('expense-form').reset();
+      document.getElementById('f-date').value    = row.date;
+      document.getElementById('f-date').min      = `${yr}-01-01`;
+      document.getElementById('f-date').max      = `${yr}-12-31`;
+      document.getElementById('f-expense').value = row.expense;
+      document.getElementById('f-amount').value  = row.amount;
+      document.getElementById('f-store').value   = row.store || '';
+      document.getElementById('f-remarks').value = row.remarks || '';
+      populateStoreDatalist();
+    }
+
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    setTimeout(() => {
+      const first = (isIncome ? document.getElementById('i-date') : document.getElementById('f-date'));
+      first && first.focus();
+    }, 60);
+  }
+
   function closeModal() {
+    editingId   = null;
+    editingType = null;
     document.getElementById('modal-overlay').classList.add('hidden');
   }
 
@@ -347,6 +405,14 @@ const App = (() => {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving…';
 
+    if (editingId) {
+      await saveEditedExpense(editingId, submitBtn);
+    } else {
+      await saveNewExpense(submitBtn);
+    }
+  }
+
+  async function saveNewExpense(submitBtn) {
     const expense = {
       id:        crypto.randomUUID(),
       date:      document.getElementById('f-date').value,
@@ -379,12 +445,55 @@ const App = (() => {
     submitBtn.textContent = 'Add Expense';
   }
 
+  async function saveEditedExpense(id, submitBtn) {
+    const oldRow = Storage.getExpenses().find(e => e.id === id);
+    if (!oldRow) { closeModal(); return; }
+
+    const updates = {
+      date:    document.getElementById('f-date').value,
+      expense: document.getElementById('f-expense').value.trim(),
+      amount:  parseFloat(document.getElementById('f-amount').value),
+      store:   document.getElementById('f-store').value.trim(),
+      remarks: document.getElementById('f-remarks').value.trim(),
+      synced:  false,
+    };
+
+    Storage.updateExpense(id, updates);
+    closeModal();
+    render();
+    toast('Expense updated', 'success');
+
+    if (Auth.isConnected()) {
+      try {
+        const newRow = Storage.getExpenses().find(e => e.id === id);
+        await Sheets.updateExpenseRow(oldRow, newRow);
+        render();
+        toast('Synced to Google Sheets ✓', 'success');
+      } catch (err) {
+        toast('Saved locally — sync failed: ' + err.message, 'error');
+      }
+    } else {
+      toast('Saved locally. Connect to sync.', 'info');
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save Changes';
+  }
+
   // ── Submit income ─────────────────────────────────────────────
   async function submitIncome() {
     const submitBtn = document.getElementById('inc-submit');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving…';
 
+    if (editingId) {
+      await saveEditedIncome(editingId, submitBtn);
+    } else {
+      await saveNewIncome(submitBtn);
+    }
+  }
+
+  async function saveNewIncome(submitBtn) {
     const income = {
       id:         crypto.randomUUID(),
       date:       document.getElementById('i-date').value,
@@ -416,6 +525,45 @@ const App = (() => {
     submitBtn.disabled = false;
     submitBtn.textContent = 'Add Income';
   }
+
+  async function saveEditedIncome(id, submitBtn) {
+    const oldRow = Storage.getIncome().find(i => i.id === id);
+    if (!oldRow) { closeModal(); return; }
+
+    const updates = {
+      date:       document.getElementById('i-date').value,
+      dogName:    document.getElementById('i-dog').value.trim(),
+      incomeType: document.getElementById('i-itype').value,
+      income:     parseFloat(document.getElementById('i-amount').value),
+      source:     document.getElementById('i-source').value.trim(),
+      synced:     false,
+    };
+
+    Storage.updateIncome(id, updates);
+    closeModal();
+    render();
+    toast('Income updated', 'success');
+
+    if (Auth.isConnected()) {
+      try {
+        const newRow = Storage.getIncome().find(i => i.id === id);
+        await Sheets.updateIncomeRow(oldRow, newRow);
+        render();
+        toast('Synced to Google Sheets ✓', 'success');
+      } catch (err) {
+        toast('Saved locally — sync failed: ' + err.message, 'error');
+      }
+    } else {
+      toast('Saved locally. Connect to sync.', 'info');
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Save Changes';
+  }
+
+  // ── Edit ──────────────────────────────────────────────────────
+  function editExpense(id) { openEditModal('expense', id); }
+  function editIncome(id)  { openEditModal('income',  id); }
 
   // ── Delete (app + sheet) ──────────────────────────────────────
   async function deleteExpense(id) {
@@ -559,7 +707,8 @@ const App = (() => {
                 title="${e.synced ? 'Synced' : 'Pending sync'}"></span>
         </td>
         <td class="col-action">
-          <button class="delete-btn" onclick="App.deleteExpense('${e.id}')" title="Remove from app">✕</button>
+          <button class="edit-btn" onclick="App.editExpense('${e.id}')" title="Edit">✎</button>
+          <button class="delete-btn" onclick="App.deleteExpense('${e.id}')" title="Delete">✕</button>
         </td>
       </tr>
     `).join('');
@@ -623,7 +772,8 @@ const App = (() => {
                 title="${i.synced ? 'Synced' : 'Pending sync'}"></span>
         </td>
         <td class="col-action">
-          <button class="delete-btn" onclick="App.deleteIncome('${i.id}')" title="Remove from app">✕</button>
+          <button class="edit-btn" onclick="App.editIncome('${i.id}')" title="Edit">✎</button>
+          <button class="delete-btn" onclick="App.deleteIncome('${i.id}')" title="Delete">✕</button>
         </td>
       </tr>
     `).join('');
@@ -684,7 +834,7 @@ const App = (() => {
   }
 
   // Public surface
-  return { init, deleteExpense, deleteIncome };
+  return { init, deleteExpense, deleteIncome, editExpense, editIncome };
 })();
 
 window.addEventListener('DOMContentLoaded', App.init);

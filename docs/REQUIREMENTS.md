@@ -15,6 +15,7 @@ The Dog Sitting Finance Tracker is a single-page web application that enables a 
 - Offline entry with deferred sync
 - Filtering, sorting, and totalling of displayed rows
 - Single and bulk deletion from both the app and the sheet
+- In-app editing of any row with immediate sheet sync
 - Row-level re-sync for sheet edits
 - Responsive layout for desktop, tablet, and mobile browsers
 
@@ -157,7 +158,36 @@ As a dog sitter I want to delete incorrect entries from both the app and the she
 
 ---
 
-## Feature: F-06 — Row-Level Re-sync
+## Feature: F-06 — Edit Row
+
+### User Story
+As a dog sitter I want to edit an existing row from the app so that I can correct mistakes without having to delete and re-enter.
+
+### Acceptance Criteria
+1. Each row **shall** display a ✎ edit button alongside the ✕ delete button.
+2. Clicking ✎ **shall** open the same modal form, pre-populated with the row's current values.
+3. The modal title **shall** change to "Edit Expense" or "Edit Income"; the submit button **shall** read "Save Changes".
+4. The date input **shall** be constrained to the row's original year (cannot move a row to a different year).
+5. On save, the record **must** be updated in LocalStorage immediately with `synced: false`.
+6. If connected and the row was previously synced, the app **must** delete the old row from the sheet and append the updated row.
+7. If connected and the row was pending (never synced), the app **shall** push it as a new row (no delete needed).
+8. If disconnected, the row **shall** be saved locally with an amber dot; it will sync on the next push/sync.
+9. Edit **shall** be available for all years including past years (view-only restriction applies only to adding new rows).
+10. After a successful sheet sync the row **shall** show a green dot and a "Synced to Google Sheets ✓" toast **shall** appear.
+
+### Test Plan
+| # | Step | Expected |
+|---|------|----------|
+| T6.1 | Click ✎ on any row | Modal opens with all fields pre-filled |
+| T6.2 | Change a field, click "Save Changes" (connected, row was synced) | Row updated in app and sheet; green dot |
+| T6.3 | Change a field, click "Save Changes" (disconnected) | Row updated locally with amber dot; sheet unchanged |
+| T6.4 | Click ✎ on a past-year row | Modal opens; changes can be saved |
+| T6.5 | Change a field, click "Save Changes" (connected, row was pending) | Row updated locally; pushed to sheet as new row |
+| T6.6 | Click "Save Changes" (connected) | App shows amber dot immediately; green dot after sheet sync |
+
+---
+
+## Feature: F-07 — Row-Level Re-sync
 
 ### User Story
 As a dog sitter I want to re-sync a specific row after editing it in the sheet so that the app reflects the updated value.
@@ -180,7 +210,7 @@ As a dog sitter I want to re-sync a specific row after editing it in the sheet s
 
 ---
 
-## Feature: F-07 — Year Selector
+## Feature: F-08 — Year Selector
 
 ### User Story
 As a dog sitter I want to view records for any year so that I can review historical data.
@@ -202,7 +232,7 @@ As a dog sitter I want to view records for any year so that I can review histori
 
 ---
 
-## Feature: F-08 — Google OAuth Authentication
+## Feature: F-09 — Google OAuth Authentication
 
 ### Acceptance Criteria
 1. The app **shall** use Google Identity Services (GIS) OAuth 2.0 for authentication — no backend required.
