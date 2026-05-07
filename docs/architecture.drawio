@@ -1,0 +1,68 @@
+<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+
+<!-- User -->
+<mxCell id="2" value="User" style="shape=mxgraph.general.person;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1"><mxGeometry x="360" y="40" width="60" height="80" as="geometry"/></mxCell>
+
+<!-- Browser SPA container -->
+<mxCell id="3" value="Browser (SPA — GitHub Pages)" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=13;fontColor=#333333;" vertex="1" parent="1"><mxGeometry x="80" y="160" width="680" height="340" as="geometry"/></mxCell>
+
+<!-- index.html -->
+<mxCell id="4" value="index.html&#xa;UI / DOM" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="3"><mxGeometry x="40" y="60" width="120" height="60" as="geometry"/></mxCell>
+
+<!-- config.js -->
+<mxCell id="5" value="js/config.js&#xa;Static Config" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="3"><mxGeometry x="40" y="160" width="120" height="60" as="geometry"/></mxCell>
+
+<!-- app.js -->
+<mxCell id="6" value="js/app.js&#xa;Main Controller&#xa;Filters · Render · Modal" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="3"><mxGeometry x="200" y="60" width="150" height="70" as="geometry"/></mxCell>
+
+<!-- storage.js -->
+<mxCell id="7" value="js/storage.js&#xa;LocalStorage CRUD&#xa;Dedup · Upsert" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="3"><mxGeometry x="200" y="200" width="150" height="70" as="geometry"/></mxCell>
+
+<!-- auth.js -->
+<mxCell id="8" value="js/auth.js&#xa;OAuth Token Mgmt&#xa;connect · revoke" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="3"><mxGeometry x="420" y="60" width="150" height="70" as="geometry"/></mxCell>
+
+<!-- sheets.js -->
+<mxCell id="9" value="js/sheets.js&#xa;Sheets API Client&#xa;push · pull · delete · edit" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="3"><mxGeometry x="420" y="200" width="150" height="70" as="geometry"/></mxCell>
+
+<!-- LocalStorage -->
+<mxCell id="10" value="LocalStorage&#xa;dogsit_expenses&#xa;dogsit_income" style="shape=mxgraph.flowchart.stored_data;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="3"><mxGeometry x="200" y="290" width="150" height="60" as="geometry"/></mxCell>
+
+<!-- Edges inside browser -->
+<mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="6" target="7" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="6" target="8" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="6" target="9" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="8" target="9" label="Bearer token" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="7" target="10" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="5" target="6" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="5" target="8" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="5" target="9" parent="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- User → index.html -->
+<mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="2" target="4" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="4" target="6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- Google APIs container -->
+<mxCell id="11" value="Google Cloud APIs" style="swimlane;startSize=30;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=13;fontColor=#333333;" vertex="1" parent="1"><mxGeometry x="80" y="560" width="680" height="180" as="geometry"/></mxCell>
+
+<!-- GIS -->
+<mxCell id="12" value="accounts.google.com/gsi&#xa;Google Identity Services&#xa;OAuth 2.0 Token Issuance" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="11"><mxGeometry x="80" y="60" width="220" height="80" as="geometry"/></mxCell>
+
+<!-- Sheets API -->
+<mxCell id="13" value="sheets.googleapis.com/v4&#xa;Spreadsheet Read / Write&#xa;append · batchUpdate · values" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="11"><mxGeometry x="380" y="60" width="220" height="80" as="geometry"/></mxCell>
+
+<!-- Google Sheet -->
+<mxCell id="14" value="Google Sheet&#xa;Year-tab pairs&#xa;(Expense · Income)" style="shape=mxgraph.flowchart.stored_data;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1"><mxGeometry x="640" y="620" width="160" height="80" as="geometry"/></mxCell>
+
+<!-- auth.js → GIS -->
+<mxCell id="e11" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" source="8" target="12" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- sheets.js → Sheets API -->
+<mxCell id="e12" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" source="9" target="13" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- Sheets API → Google Sheet -->
+<mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;" edge="1" source="13" target="14" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- GitHub Pages label -->
+<mxCell id="15" value="Hosted on GitHub Pages" style="text;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1"><mxGeometry x="80" y="505" width="200" height="20" as="geometry"/></mxCell>
+
+</root></mxGraphModel>

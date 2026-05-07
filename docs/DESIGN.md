@@ -8,34 +8,22 @@ The design deliberately avoids a backend to keep the project dependency-free, fr
 
 ---
 
-## Architecture
+## Architecture Diagram
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Browser (SPA)                        │
-│                                                         │
-│  ┌──────────┐   ┌──────────┐   ┌────────────────────┐  │
-│  │  app.js  │──▶│storage.js│   │      auth.js       │  │
-│  │          │   │          │   │  (GIS token mgmt)  │  │
-│  │ UI logic │   │LocalStore│   └────────┬───────────┘  │
-│  │ Filters  │   │  CRUD    │            │ Bearer token  │
-│  │ Render   │   │  Dedup   │   ┌────────▼───────────┐  │
-│  └────┬─────┘   └──────────┘   │     sheets.js      │  │
-│       │                        │  Google Sheets API  │  │
-│       └────────────────────────│  v4 (fetch calls)  │  │
-│                                └────────┬───────────┘  │
-└─────────────────────────────────────────│───────────────┘
-                                          │ HTTPS
-                          ┌───────────────▼──────────────┐
-                          │        Google APIs           │
-                          │                              │
-                          │  accounts.google.com/gsi     │
-                          │  (OAuth 2.0 token issuance)  │
-                          │                              │
-                          │  sheets.googleapis.com/v4    │
-                          │  (Spreadsheet read/write)    │
-                          └──────────────────────────────┘
-```
+![Architecture Diagram](architecture.drawio)
+
+**Components:**
+- **User** — interacts with the app via browser
+- **index.html** — single HTML file; provides all DOM structure and loads scripts
+- **js/config.js** — static config (CLIENT_ID, SHEET_ID, tab name patterns, currency)
+- **js/app.js** — main controller: tab switching, filter state, modal (add/edit), rendering, toast notifications
+- **js/storage.js** — LocalStorage CRUD: add, update, upsert, delete, dedup by composite key
+- **js/auth.js** — OAuth 2.0 token lifecycle via Google Identity Services; token stored in LocalStorage
+- **js/sheets.js** — all Sheets API v4 calls: push rows, pull year, batchUpdate delete, edit (delete+append)
+- **LocalStorage** — primary offline store; two key spaces: `dogsit_expenses`, `dogsit_income`
+- **Google Identity Services** — issues Bearer tokens via OAuth 2.0 popup flow
+- **Sheets API v4** — reads/writes the user's Google Sheet; `append`, `values`, `batchUpdate`
+- **Google Sheet** — cloud persistence; year-based tab pairs (Expense · Income)
 
 **Data flow — Add a row:**
 ```
